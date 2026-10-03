@@ -514,7 +514,29 @@ EDITING RULES:
 Return JSON only.`;
 
 function decodeEntities(s) {
-  return s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+  // Decode &amp; LAST so an entity like &amp;lt; is not double-unescaped into a
+  // literal '<' (flagged by js/double-escaping). Named entities resolve first,
+  // then the bare ampersand.
+  return s
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&');
+}
+
+// Strip HTML tags robustly. A single pass of /<[^>]+>/ can leave a `<script`
+// fragment behind for malformed/nested input like `<scr<script>ipt>`, which
+// CodeQL flags as incomplete multi-character sanitization. Repeat until stable,
+// then drop any leftover lone angle brackets.
+function stripTags(s) {
+  let prev;
+  let out = String(s);
+  do {
+    prev = out;
+    out = out.replace(/<[^>]*>/g, ' ');
+  } while (out !== prev);
+  return out.replace(/[<>]/g, ' ');
 }
 
 function getEnvInt(env, key, fallback, min = 1, max = 200) {
@@ -540,7 +562,7 @@ function buildAlertWebhookPayload(webhookUrl, message) {
     return { content: message };
   }
 
-  if (host.includes('slack.com')) {
+  if (host === 'slack.com' || host === 'hooks.slack.com' || host.endsWith('.slack.com')) {
     return { text: message };
   }
 
@@ -678,7 +700,7 @@ function parseRSS(xml, csp) {
     const rawDate = get('pubDate') || get('updated') || get('published') || '';
     const pubDate = rawDate ? new Date(rawDate).toISOString() : '';
     const rawContent = isAtom ? get('content') : get('description');
-    const rawTitle = decodeEntities(get('title').replace(/<[^>]+>/g, ''));
+    const rawTitle = decodeEntities(stripTags(get('title')));
 
     // GCP: split by product title (<h2 class="release-note-product-title">)
     if (csp === 'gcp' && rawContent.includes('release-note-product-title')) {
@@ -686,15 +708,15 @@ function parseRSS(xml, csp) {
       for (let i = 1; i < sections.length; i++) {
         const endH2 = sections[i].indexOf('</h2>');
         if (endH2 < 0) continue;
-        const productName = decodeEntities(sections[i].slice(0, endH2).replace(/<[^>]+>/g, '').trim());
-        const body = sections[i].slice(endH2 + 5).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 1500);
+        const productName = decodeEntities(stripTags(sections[i].slice(0, endH2)).trim());
+        const body = stripTags(sections[i].slice(endH2 + 5)).replace(/\s+/g, ' ').trim().slice(0, 1500);
         items.push({ csp, title: productName, description: body, url, pub_date: pubDate });
       }
     } else {
       items.push({
         csp,
         title: rawTitle,
-        description: rawContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 2000),
+        description: stripTags(rawContent).replace(/\s+/g, ' ').trim().slice(0, 2000),
         url,
         pub_date: pubDate,
       });

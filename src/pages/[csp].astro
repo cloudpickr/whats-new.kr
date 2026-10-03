@@ -7,6 +7,15 @@ const { csp } = Astro.params;
 const valid = ['aws', 'gcp', 'azure'];
 if (!csp || !valid.includes(csp)) return Astro.redirect('/');
 
+// Edge-cache the rendered HTML at Cloudflare. Content refreshes on a 1-min cron,
+// so serve a 60s edge copy (cuts repeat TTFB) and keep serving stale for 5 min
+// while revalidating in the background. Browsers always revalidate (max-age=0)
+// so a user never sees stale beyond the edge window.
+Astro.response.headers.set(
+  'Cache-Control',
+  'public, max-age=0, s-maxage=60, stale-while-revalidate=300'
+);
+
 let articles: any[] = [];
 try {
   const res = await callBackend<{ items?: any[] }>(`/api/articles?csp=${csp}&lang=ko&limit=80`, { items: [] });

@@ -2,6 +2,14 @@
 import Layout from '../layouts/Layout.astro';
 import { callBackend } from '../lib/apiClient';
 
+// Edge-cache the rendered HTML at Cloudflare (content refreshes on a 1-min
+// cron): 60s edge copy to cut repeat TTFB, 5-min stale-while-revalidate, and
+// max-age=0 so browsers always revalidate.
+Astro.response.headers.set(
+  'Cache-Control',
+  'public, max-age=0, s-maxage=60, stale-while-revalidate=300'
+);
+
 const csps = [
   { id: 'aws', name: 'Amazon Web Services', color: '#FF9900', accent: '#232F3E', font: "'Amazon Ember', sans-serif" },
   { id: 'gcp', name: 'Google Cloud', color: 'linear-gradient(to right, #4285F4 25%, #EA4335 25%, #EA4335 50%, #FBBC04 50%, #FBBC04 75%, #34A853 75%)', accent: '#4285F4', isGradient: true, font: "'Google Sans', sans-serif", weight: 700 },

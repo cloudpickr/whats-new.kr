@@ -63,11 +63,15 @@ const fontPreload: Record<string, string> = {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://c.s-microsoft.com" crossorigin>
+    <!-- Pretendard (the Korean body face, and the LCP text on every page) is on
+         jsDelivr — preconnect so its CSS + woff2 subset start without paying DNS
+         + TLS on the critical path. -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     {fontPreload[vendor] && <link rel="preload" as="font" type="font/woff2" href={fontPreload[vendor]} crossorigin />}
     <!-- Google Sans (GCP brand face) — non-blocking; was a render-blocking @import chain -->
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" media="print" onload="this.media='all'" rel="stylesheet">
-    <!-- Pretendard: single Korean face for every vendor stack (Noto Sans KR dropped — two Hangul fonts were loaded) -->
-    <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" onload="this.onload=null;this.rel='stylesheet'">
+    <!-- Pretendard: single Korean face for every vendor stack (Noto Sans KR dropped — two Hangul fonts were loaded). Loaded as the highest-priority style so the LCP body text reflows to it as early as possible; the subset CSS is font-display:swap so text still paints immediately in the fallback. -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" fetchpriority="high">
     <noscript>
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap">

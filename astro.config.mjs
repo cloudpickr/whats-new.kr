@@ -1,6 +1,6 @@
 import { defineConfig } from 'astro/config';
 import cloudflare from '@astrojs/cloudflare';
-import tailwind from '@astrojs/tailwind';
+import tailwindcss from '@tailwindcss/vite';
 
 // `site` drives canonical URLs, the sitemap, and SSR's apiBase() (which derives
 // the Worker API host as api.<site.host>). The live value comes from the
@@ -13,5 +13,7 @@ export default defineConfig({
   site: SITE_URL,
   output: 'server',
   adapter: cloudflare(),
-  integrations: [tailwind()],
+  vite: {
+    plugins: [tailwindcss()],
+  },
 });

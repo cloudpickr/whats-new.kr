@@ -2,7 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import { apiBase, apiHeaders } from '../lib/apiClient';
 
-const siteUrl = new URL(Astro.site);
+const siteUrl = Astro.site ?? new URL('https://whats-new.kr');
 const API_BASE = apiBase(siteUrl);
 const apiReqHeaders = apiHeaders(Astro.locals);
 

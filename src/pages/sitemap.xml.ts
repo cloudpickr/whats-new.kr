@@ -17,7 +17,7 @@ async function getLatestPubDate(site: URL, csp: string, locals: unknown) {
   try {
     const response = await fetch(`${base}/api/articles?csp=${csp}&lang=ko&limit=1`, { headers: apiHeaders(locals) });
     if (!response.ok) return null;
-    const payload = await response.json();
+    const payload = (await response.json()) as { items?: Array<{ pub_date?: string }> };
     return payload.items?.[0]?.pub_date || null;
   } catch {
     return null;

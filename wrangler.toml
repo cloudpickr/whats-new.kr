@@ -1,8 +1,17 @@
 name = "cloud-whats-new"
 compatibility_date = "2026-03-01"
+compatibility_flags = ["nodejs_compat"]
 account_id = "38e65f79cdcaa062a73dfda669b8bb7d"
 
-main = "worker/index.js"
+# Unified Worker: Astro SSR + backend API/pipeline. The Astro Cloudflare adapter
+# (v14) builds src/worker.ts into the deployed entry and serves static client
+# assets via the ASSETS binding. See src/worker.ts for request routing.
+main = "src/worker.ts"
+
+# Session storage KV required by Astro's Sessions API on the Cloudflare adapter.
+# Wrangler auto-provisions this namespace on deploy when only a binding is given.
+[[kv_namespaces]]
+binding = "SESSION"
 
 [[d1_databases]]
 binding = "DB"

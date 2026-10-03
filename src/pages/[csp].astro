@@ -13,7 +13,7 @@ const API_BASE = apiBase(siteUrl);
 let articles: any[] = [];
 try {
   const res = await fetch(`${API_BASE}/api/articles?csp=${csp}&lang=ko&limit=80`, { headers: apiHeaders(Astro.locals) });
-  articles = (await res.json()).items || [];
+  articles = ((await res.json()) as { items?: any[] }).items || [];
 } catch (e) { console.error(e); }
 
 const rssLinks: Record<string, { name: string; url: string }> = {

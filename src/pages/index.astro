@@ -14,10 +14,10 @@ const csps = [
 
 const data: Record<string, any[]> = {};
 const results = await Promise.allSettled(
-  csps.map(c => fetch(`${API_BASE}/api/articles?csp=${c.id}&lang=ko&limit=15`, { headers: apiReqHeaders }).then(r => r.json()))
+  csps.map(c => fetch(`${API_BASE}/api/articles?csp=${c.id}&lang=ko&limit=15`, { headers: apiReqHeaders }).then(r => r.json() as Promise<{ items?: any[] }>))
 );
 csps.forEach((c, i) => {
-  data[c.id] = results[i].status === 'fulfilled' ? results[i].value.items || [] : [];
+  data[c.id] = results[i].status === 'fulfilled' ? (results[i] as PromiseFulfilledResult<{ items?: any[] }>).value.items || [] : [];
 });
 
 const structuredData = [

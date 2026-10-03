@@ -21,11 +21,22 @@ function isApiRequest(pathname: string): boolean {
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const { pathname } = new URL(request.url);
-    if (isApiRequest(pathname)) {
-      return backend.fetch(request, env, ctx);
+    // Strip the internal-SSR trust header from every inbound external request
+    // so it can't be forged. Only this Worker's own SSR (via apiClient's
+    // in-process callBackend) is allowed to set it; see worker/index.js
+    // (isInternalSsrCall) for the /api/articles gate bypass it unlocks.
+    let safeRequest = request;
+    if (request.headers.has('X-Internal-SSR')) {
+      const headers = new Headers(request.headers);
+      headers.delete('X-Internal-SSR');
+      safeRequest = new Request(request, { headers });
     }
-    return handle(request, env as never, ctx);
+
+    const { pathname } = new URL(safeRequest.url);
+    if (isApiRequest(pathname)) {
+      return backend.fetch(safeRequest, env, ctx);
+    }
+    return handle(safeRequest, env as never, ctx);
   },
 
   async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {

@@ -1,19 +1,16 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import UpdateCard from '../components/UpdateCard.astro';
-import { apiBase, apiHeaders } from '../lib/apiClient';
+import { callBackend } from '../lib/apiClient';
 
 const { csp } = Astro.params;
 const valid = ['aws', 'gcp', 'azure'];
 if (!csp || !valid.includes(csp)) return Astro.redirect('/');
 
-const siteUrl = Astro.site ?? new URL('https://whats-new.kr');
-const API_BASE = apiBase(siteUrl);
-
 let articles: any[] = [];
 try {
-  const res = await fetch(`${API_BASE}/api/articles?csp=${csp}&lang=ko&limit=80`, { headers: apiHeaders(Astro.locals) });
-  articles = ((await res.json()) as { items?: any[] }).items || [];
+  const res = await callBackend<{ items?: any[] }>(`/api/articles?csp=${csp}&lang=ko&limit=80`, { items: [] });
+  articles = res.items || [];
 } catch (e) { console.error(e); }
 
 const rssLinks: Record<string, { name: string; url: string }> = {

@@ -1,10 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { apiBase, apiHeaders } from '../lib/apiClient';
-
-const siteUrl = Astro.site ?? new URL('https://whats-new.kr');
-const API_BASE = apiBase(siteUrl);
-const apiReqHeaders = apiHeaders(Astro.locals);
+import { callBackend } from '../lib/apiClient';
 
 const csps = [
   { id: 'aws', name: 'Amazon Web Services', color: '#FF9900', accent: '#232F3E', font: "'Amazon Ember', sans-serif" },
@@ -13,11 +9,11 @@ const csps = [
 ];
 
 const data: Record<string, any[]> = {};
-const results = await Promise.allSettled(
-  csps.map(c => fetch(`${API_BASE}/api/articles?csp=${c.id}&lang=ko&limit=15`, { headers: apiReqHeaders }).then(r => r.json() as Promise<{ items?: any[] }>))
+const results = await Promise.all(
+  csps.map(c => callBackend<{ items?: any[] }>(`/api/articles?csp=${c.id}&lang=ko&limit=15`, { items: [] }))
 );
 csps.forEach((c, i) => {
-  data[c.id] = results[i].status === 'fulfilled' ? (results[i] as PromiseFulfilledResult<{ items?: any[] }>).value.items || [] : [];
+  data[c.id] = results[i].items || [];
 });
 
 const structuredData = [

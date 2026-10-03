@@ -1899,6 +1899,14 @@ export default {
     const isProtectedApi =
       (request.method === 'POST' && (path === '/api/pipeline' || path === '/mcp')) ||
       (request.method === 'GET' && path === '/api/articles');
+    // Trusted in-process call from this same Worker's SSR (see src/worker.ts).
+    // The unified Worker serves SSR and this API together, so SSR invokes
+    // fetch() directly rather than over HTTP (a Worker can't subrequest its own
+    // origin — Cloudflare error 1042). The entrypoint strips this header from
+    // every inbound external request before routing, so it can't be forged from
+    // outside; only the in-process SSR caller sets it. Such calls skip the
+    // website-only /api/articles auth gate.
+    const isInternalSsrCall = request.headers.get('X-Internal-SSR') === '1';
     const requiresAdminIp = request.method === 'POST' && (path === '/api/pipeline');
     if (path === '/mcp' && request.method === 'POST') {
       // /mcp itself stays reachable without auth (summary/discovery calls).
@@ -1912,7 +1920,7 @@ export default {
     }
 
     let authContext = { ok: false, reason: 'not_checked' };
-    if (isProtectedApi) {
+    if (isProtectedApi && !isInternalSsrCall) {
       authContext = authenticateRequest(request, env);
       const requiredType = requiredKeyTypeForPath(path);
       if (authContext.ok && requiredType && authContext.keyType !== requiredType) {

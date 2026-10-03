@@ -38,7 +38,7 @@ SITE_URL = "https://whats-new.kr"
 BACKLOG_QUEUE_BATCH_SIZE = "25"
 AUTH_ENFORCEMENT = "on"
 SITE_API_ENFORCEMENT = "on"
-TRUSTED_IP_BYPASS = "on"
+TRUSTED_IP_BYPASS = "off"
 ALLOWED_ADMIN_IPS = "211.207.226.107"
 # Translation model: switched from @cf/zai-org/glm-4.7-flash (a reasoning model
 # that burned ~3.4x the neurons on discarded reasoning tokens) to mistral-small.
@@ -52,7 +52,7 @@ SITE_URL = "https://whats-new.kr"
 BACKLOG_QUEUE_BATCH_SIZE = "25"
 AUTH_ENFORCEMENT = "on"
 SITE_API_ENFORCEMENT = "on"
-TRUSTED_IP_BYPASS = "on"
+TRUSTED_IP_BYPASS = "off"
 ALLOWED_ADMIN_IPS = "211.207.226.107"
 TRANSLATION_MODEL = "@cf/mistralai/mistral-small-3.1-24b-instruct"
 

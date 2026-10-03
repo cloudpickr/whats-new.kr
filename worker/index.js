@@ -592,16 +592,15 @@ function parseApiKeyRing(env) {
 }
 
 function getAuthMode(env) {
-  const mode = (env.AUTH_ENFORCEMENT || 'warn').toLowerCase();
-  return ['off', 'warn', 'on'].includes(mode) ? mode : 'warn';
+  const mode = (env.AUTH_ENFORCEMENT || 'on').toLowerCase();
+  return ['off', 'warn', 'on'].includes(mode) ? mode : 'on';
 }
 
-// Staged rollout switch for the /api/articles website-only gate, independent of
-// AUTH_ENFORCEMENT so it can sit in 'warn' (log only) until the site's own SSR
-// calls are confirmed to be sending the site token in production.
+// /api/articles gate, independent of AUTH_ENFORCEMENT. Missing or unrecognized
+// values fail closed. Explicit 'warn' only logs; explicit 'off' disables the gate.
 function getSiteApiEnforcement(env) {
-  const mode = (env.SITE_API_ENFORCEMENT || 'warn').toLowerCase();
-  return ['off', 'warn', 'on'].includes(mode) ? mode : 'warn';
+  const mode = (env.SITE_API_ENFORCEMENT || 'on').toLowerCase();
+  return ['off', 'warn', 'on'].includes(mode) ? mode : 'on';
 }
 
 // Which API_KEY_RING key `type` a path requires, beyond just "any valid token".
@@ -610,10 +609,6 @@ function requiredKeyTypeForPath(path) {
   if (path === '/mcp') return 'mcp';
   if (path === '/api/articles') return 'site';
   return null;
-}
-
-function isTrustedIpBypassEnabled(env) {
-  return String(env.TRUSTED_IP_BYPASS || 'off').toLowerCase() === 'on';
 }
 
 function getBearerToken(request) {
@@ -651,7 +646,7 @@ function getAllowedAdminIps(env) {
 
 function isAllowedAdminIp(request, env) {
   const allowedIps = getAllowedAdminIps(env);
-  if (allowedIps.length === 0) return true;
+  if (allowedIps.length === 0) return false;
   const currentIp = request.headers.get('CF-Connecting-IP') || '';
   return allowedIps.includes(currentIp);
 }
@@ -1883,11 +1878,6 @@ export default {
       (request.method === 'POST' && (path === '/api/pipeline' || path === '/mcp')) ||
       (request.method === 'GET' && path === '/api/articles');
     const requiresAdminIp = request.method === 'POST' && (path === '/api/pipeline');
-    const trustedIpBypass =
-      path === '/api/pipeline' &&
-      request.method === 'POST' &&
-      isTrustedIpBypassEnabled(env) &&
-      isAllowedAdminIp(request, env);
     if (path === '/mcp' && request.method === 'POST') {
       // /mcp itself stays reachable without auth (summary/discovery calls).
       // Only format="source" tool calls require a valid "mcp"-type token,
@@ -1896,15 +1886,12 @@ export default {
       // to read. 'warn' (not 'off') keeps the [auth] log line either way.
       authMode = 'warn';
     } else if (path === '/api/articles' && request.method === 'GET') {
-      // Website-only gate — staged rollout, defaults to 'warn' until SSR call sites confirm the token
       authMode = getSiteApiEnforcement(env);
     }
 
     let authContext = { ok: false, reason: 'not_checked' };
     if (isProtectedApi) {
-      authContext = trustedIpBypass
-        ? { ok: true, keyId: 'trusted-ip-bypass', keyType: 'ip' }
-        : authenticateRequest(request, env);
+      authContext = authenticateRequest(request, env);
       const requiredType = requiredKeyTypeForPath(path);
       if (authContext.ok && requiredType && authContext.keyType !== requiredType) {
         authContext = { ok: false, reason: 'wrong_key_type' };
@@ -2224,7 +2211,8 @@ export default {
             }
             return respond(rpc.id, { content: [{ type: 'text', text }] });
           } catch (dbErr) {
-            return respond(rpc.id, { content: [{ type: 'text', text: JSON.stringify({ error: dbErr.message, sql, params }) }] });
+            console.error('search_releases failed:', dbErr?.message || dbErr, { sql, params });
+            return respond(rpc.id, { content: [{ type: 'text', text: JSON.stringify({ error: 'Database query failed' }) }] });
           }
         }
 

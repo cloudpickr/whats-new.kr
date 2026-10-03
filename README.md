@@ -75,13 +75,14 @@ Cloudflare Pages (Astro SSR)
 
 - **요약 조회 (`format="summary"`, 기본값)**: 한국어(`ko`) 또는 영어(`en`) AI 요약 데이터를 반환하며, 별도 인증 없이 누구나 자유롭게 호출할 수 있습니다.
 - **영문 원문 조회 (`format="source"`)**: 벤더 영문 원문(수집된 `articles` 원본)을 반환합니다. `search_releases`와 `get_release` 둘 다 지원하며, 번역 파이프라인과 독립적이라 RSS 수집 직후 즉시 조회가 가능합니다. 단, 에이전트 전용 기능으로 `Authorization: Bearer <mcp 타입 토큰>` 인증이 필수이며, 미인증 시 JSON-RPC 에러 `-32001`로 거부됩니다.
+- **데이터베이스 오류**: `search_releases`가 쿼리에 실패하면 클라이언트에는 일반 오류만 반환합니다. SQL 문과 파라미터는 응답에 넣지 않습니다.
 
 ### API 접근 계층 및 인증
 
 API 접근은 보안 및 용도에 따라 4개 계층으로 구분됩니다.
 
-1. **공개 (인증 불필요)**: `POST /mcp`의 기본 요약 조회 (`search_releases`, `get_release`, `get_stats` 및 `initialize`, `tools/list`)
-   - 한국어·영어 AI 요약 및 시스템 통계를 인증 없이 조회할 수 있습니다.
+1. **공개 (인증 불필요)**: `GET /api/stats`, `POST /mcp`의 기본 요약 조회 (`search_releases`, `get_release`, `get_stats` 및 `initialize`, `tools/list`)
+   - 한국어·영어 AI 요약, `GET /api/stats`, MCP `get_stats`를 인증 없이 조회할 수 있습니다.
 2. **에이전트 전용 (인증 필요)**: `POST /mcp`의 `format="source"` (영문 원문 조회)
    - 벤더 영문 원문 데이터를 반환합니다.
    - 요청 헤더에 `Authorization: Bearer <token>` (`mcp` 타입 토큰)이 필요하며, 토큰이 없거나 유효하지 않으면 JSON-RPC 에러 `-32001`을 반환합니다.
@@ -89,10 +90,11 @@ API 접근은 보안 및 용도에 따라 4개 계층으로 구분됩니다.
 3. **사이트 SSR 전용**: `GET /api/articles`
    - whats-new.kr 웹 프론트엔드의 서버사이드 렌더링(Astro SSR) 전용 엔드포인트입니다 (`site` 타입 토큰 필요).
    - 일반 프로그램이나 AI 에이전트는 본 엔드포인트 대신 `POST /mcp`를 사용해야 합니다.
-   - `SITE_API_ENFORCEMENT` 환경변수로 차단 여부를 제어하며, 현재는 `on`으로 전환되어 유효한 `site` 토큰이 없는 요청은 401로 거부합니다 (신규 배포 롤아웃 시에는 `warn`으로 로그만 남기다가 SSR 인증이 확인되면 `on`으로 전환).
+   - `SITE_API_ENFORCEMENT`가 `on`이면 유효한 `site` 토큰이 없는 요청은 401로 거부합니다. 값이 없거나 `off`/`warn`/`on`이 아니면 기본값은 `on`입니다. 명시적인 `warn`은 로그만 남기고 통과시키고, `off`는 이 관문을 끕니다.
 4. **관리자 전용**: `POST /api/pipeline?action=...`
    - RSS 수집 트리거, 백로그 큐잉, 기사 재번역 등 파이프라인 관리 API입니다.
-   - `Authorization: Bearer <token>` 헤더 인증과 함께 허용된 관리자 IP(`ALLOWED_ADMIN_IPS`)에서만 호출할 수 있습니다 (IP 불일치 시 403 Forbidden).
+   - `AUTH_ENFORCEMENT`가 `on`이면 `Authorization: Bearer <token>` 인증이 성공해야 합니다. 값이 없거나 알 수 없으면 기본값은 `on`입니다. 허용된 관리자 IP만으로는 이 인증을 건너뛰지 않습니다.
+   - 인증에 성공한 뒤에도 `ALLOWED_ADMIN_IPS`에 있는 IP에서만 호출할 수 있습니다. 목록이 비어 있거나 IP가 일치하지 않으면 403 Forbidden입니다.
 
 ## 디자인 시스템
 
@@ -137,7 +139,9 @@ GitHub Actions (`deploy.yml`, `push → main`):
 - `API_KEY_RING`: 서비스/MCP/사이트용 Bearer 토큰 목록 JSON
 - Pages 프로젝트(`cloud-whats-new`)에 `SITE_API_TOKEN` (`wrangler pages secret put SITE_API_TOKEN`) — `API_KEY_RING`의 `type: "site"` 토큰과 같은 값. Astro SSR(`index.astro`, `[csp].astro`, `sitemap.xml.ts`)이 `/api/articles` 호출 시 이 값을 `Authorization: Bearer`로 보냄
 
-운영 변수: `AUTH_ENFORCEMENT`, `SITE_API_ENFORCEMENT`, `ALLOWED_ADMIN_IPS`, `BACKLOG_QUEUE_BATCH_SIZE`, `ALERT_WEBHOOK_URL`, `TRANSLATION_MODEL`, `REVIEW_MODEL`, `FLUENT_REFRESH_DAILY_CAP`
+운영 변수: `AUTH_ENFORCEMENT`, `SITE_API_ENFORCEMENT`, `ALLOWED_ADMIN_IPS`, `TRUSTED_IP_BYPASS`, `BACKLOG_QUEUE_BATCH_SIZE`, `ALERT_WEBHOOK_URL`, `TRANSLATION_MODEL`, `REVIEW_MODEL`, `FLUENT_REFRESH_DAILY_CAP`
+
+`AUTH_ENFORCEMENT`와 `SITE_API_ENFORCEMENT`의 기본값은 `on`입니다. `TRUSTED_IP_BYPASS`는 `off`이며, 값이 `on`이어도 Bearer 인증을 대신하지 않습니다. `ALLOWED_ADMIN_IPS`가 비어 있으면 관리자 API는 거부됩니다.
 
 `API_KEY_RING` 예시:
 ```json

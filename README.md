@@ -94,7 +94,7 @@ API 접근은 보안 및 용도에 따라 4개 계층으로 구분됩니다.
 4. **관리자 전용**: `POST /api/pipeline?action=...`
    - RSS 수집 트리거, 백로그 큐잉, 기사 재번역 등 파이프라인 관리 API입니다.
    - `AUTH_ENFORCEMENT`가 `on`이면 `Authorization: Bearer <token>` 인증이 성공해야 합니다. 값이 없거나 알 수 없으면 기본값은 `on`입니다. 허용된 관리자 IP만으로는 이 인증을 건너뛰지 않습니다.
-   - 인증에 성공한 뒤에도 `ALLOWED_ADMIN_IPS`에 있는 IP에서만 호출할 수 있습니다. 목록이 비어 있거나 IP가 일치하지 않으면 403 Forbidden입니다. 이 값은 `wrangler.toml`에 두지 않고, Deploy All이 GitHub Actions 시크릿 `ALLOWED_ADMIN_IPS`를 Worker 시크릿으로 올립니다.
+   - 인증에 성공한 뒤에도 `ALLOWED_ADMIN_IPS`에 있는 IP에서만 호출할 수 있습니다. 목록이 비어 있거나 IP가 일치하지 않으면 403 Forbidden입니다. 이 값은 `wrangler.toml`에 두지 않고, Deploy All이 GitHub Actions 시크릿 `ALLOWED_ADMIN_IPS`를 Worker 변수로 넣습니다.
 
 ## 디자인 시스템
 
@@ -136,7 +136,7 @@ GitHub Actions (`deploy.yml`, `push → main`):
 필요 시크릿: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `ALLOWED_ADMIN_IPS`
 
 운영 시 추가 시크릿:
-- `ALLOWED_ADMIN_IPS`: `POST /api/pipeline`을 호출할 수 있는 공인 IP. 쉼표로 여러 주소를 적을 수 있습니다. Pages 빌드에는 넘기지 않습니다.
+- `ALLOWED_ADMIN_IPS`: `POST /api/pipeline`을 호출할 수 있는 공인 IP. 쉼표로 여러 주소를 적을 수 있습니다. Worker 배포 때 변수로 바인딩하며, Pages 빌드에는 넘기지 않습니다.
 - `API_KEY_RING`: 서비스/MCP/사이트용 Bearer 토큰 목록 JSON
 - Pages 프로젝트(`cloud-whats-new`)에 `SITE_API_TOKEN` (`wrangler pages secret put SITE_API_TOKEN`) — `API_KEY_RING`의 `type: "site"` 토큰과 같은 값. Astro SSR(`index.astro`, `[csp].astro`, `sitemap.xml.ts`)이 `/api/articles` 호출 시 이 값을 `Authorization: Bearer`로 보냄
 

@@ -9,9 +9,9 @@ account_id = "38e65f79cdcaa062a73dfda669b8bb7d"
 main = "src/worker.ts"
 
 # Session storage KV required by Astro's Sessions API on the Cloudflare adapter.
-# Wrangler auto-provisions this namespace on deploy when only a binding is given.
 [[kv_namespaces]]
 binding = "SESSION"
+id = "41cbef62b42c49ec9e1cf2f76a5c5c54"
 
 [[d1_databases]]
 binding = "DB"

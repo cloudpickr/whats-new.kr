@@ -40,11 +40,24 @@ jobs:
     if: needs.changes.outputs.worker == 'true'
     steps:
       - uses: actions/checkout@v4
+      - name: Require admin IP secret
+        env:
+          ALLOWED_ADMIN_IPS: ${{ secrets.ALLOWED_ADMIN_IPS }}
+        run: |
+          if [ -z "$ALLOWED_ADMIN_IPS" ]; then
+            echo "ALLOWED_ADMIN_IPS GitHub secret is empty. Refusing to deploy an empty admin allowlist."
+            exit 1
+          fi
+
       - uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy
+          secrets: |
+            ALLOWED_ADMIN_IPS
+        env:
+          ALLOWED_ADMIN_IPS: ${{ secrets.ALLOWED_ADMIN_IPS }}
 
       - name: Cleanup old Worker deployments (keep latest 3)
         env:

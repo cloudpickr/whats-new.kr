@@ -7,12 +7,12 @@ Amazon Web Services · Google Cloud · Microsoft Azure 클라우드 최신 업�
 ## 아키텍처
 
 ```
-Cloudflare Workers (Cron)
-  → 매분: 미번역 backlog 큐잉
-  → 5분마다: 미검수 건 큐잉 (backlog 없을 때)
-  → 15분마다: 3 CSP RSS 수집 + 30일 지난 기사 삭제 + stale job 정리
-  → Queue consumer: 번역 (70B) → 품질 검수 (8B) → 저장
-  → 3시간 연속 무수집 시 Alert webhook (Discord/Slack)
+Cloudflare Workers (Cron, 매분)
+  → 15분마다: RSS 수집 + 30일 지난 기사 삭제 + stale job 정리
+  → 5분마다: 미검수 건 + 어색한 한국어 재다듬기 큐잉
+  → 신규 기사는 수집 즉시 번역 큐잉, 누락분은 15분 블록에서 재큐잉
+  → Queue consumer: 번역 → 품질 검수 → 저장
+  → 장시간 무수집 시 Alert webhook (Discord/Slack)
 
 Cloudflare Pages (Astro SSR)
   → /           통합 대시보드 (3단 컬럼)
@@ -21,10 +21,13 @@ Cloudflare Pages (Astro SSR)
   → /azure      Microsoft Azure Fluent 테마
 ```
 
+번역/검수 모델은 런타임에 교체 가능하므로(아래 "번역 모델 자동 평가" 참고) 현재 가동 중인
+모델 ID는 README에 고정하지 않습니다. 실제 값은 `GET /api/stats`의 `models` 필드에서 확인하세요.
+
 ## 번역 파이프라인
 
-1. **번역**: GLM-4.7-Flash — 본문 요약 → 제목 도출 → 상태/대상/기능/리전 추출
-2. **검수**: Llama 3.1 8B fp8 — 제목/상태/리전 등 필드별 교차 검증, 오류 시 수정
+1. **번역**: 본문 요약 → 제목 도출 → 상태/대상/기능/리전 추출
+2. **검수**: 제목/상태/리전 등 필드별 교차 검증, 오류 시 수정
 3. **품질 게이트**: CJK 오염, 마크다운 잔재, 제목 잘림 등 자동 감지 → 재시도
 4. **AI 품질 리뷰**: 제목 완성도, 자연스러운 한국어, 리전 표기 일관성 등 최종 검수
 

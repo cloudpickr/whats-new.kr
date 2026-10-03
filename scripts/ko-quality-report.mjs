@@ -4,7 +4,10 @@
 // Usage: node scripts/ko-quality-report.mjs [limit-per-csp=80]
 //   Compare fluent-korean-v1 (old) vs v2 (new) as the daily refresh rolls through.
 const LIMIT = Number(process.argv[2] || 80);
-const API = process.env.API_BASE || 'https://api.whats-new.kr';
+// API base follows SITE_URL (api.<host>) so one variable moves everything;
+// API_BASE still overrides directly if needed.
+const SITE_URL = process.env.SITE_URL || 'https://whats-new.kr';
+const API = process.env.API_BASE || `https://api.${new URL(SITE_URL).host}`;
 
 function splitSentences(text) {
   return String(text || '').replace(/(\d)\.(\d)/g, '$1·$2').split(/(?<=[.!?。])\s+/).map((s) => s.trim()).filter(Boolean);

@@ -90,6 +90,11 @@ jobs:
           node-version: 20
       - run: npm ci
       - run: npm run build
+        env:
+          # Single source of truth for the public site origin. Set as a repo
+          # variable: gh variable set SITE_URL. astro.config.mjs reads it at
+          # build time to drive canonical URLs, the sitemap, and the SSR API host.
+          SITE_URL: ${{ vars.SITE_URL }}
       - uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

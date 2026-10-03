@@ -1,3 +1,10 @@
+// Single source of truth for the public site origin. The live value comes from
+// the SITE_URL service variable (wrangler [vars] at runtime, GitHub Actions
+// repo variable at build time); this literal is only the safety fallback when
+// that variable is unset (e.g. a bare local run). Change the service variable,
+// not this constant, to point the site at a new domain.
+const DEFAULT_SITE_URL = 'https://whats-new.kr';
+
 const RSS_FEEDS = {
   aws: 'https://aws.amazon.com/about-aws/whats-new/recent/feed/',
   gcp: 'https://docs.cloud.google.com/feeds/gcp-release-notes.xml',
@@ -542,7 +549,7 @@ function buildAlertWebhookPayload(webhookUrl, message) {
 
 function getCorsOrigin(request, env) {
   const requestOrigin = request.headers.get('Origin');
-  const siteOrigin = env.SITE_URL || 'https://whats-new.kr';
+  const siteOrigin = env.SITE_URL || DEFAULT_SITE_URL;
   if (!requestOrigin || requestOrigin === siteOrigin) return siteOrigin;
   return siteOrigin;
 }
@@ -1911,7 +1918,8 @@ export default {
           ? 'API_KEY_RING is not configured'
           : 'Unauthorized';
         if (path === '/api/articles' && status === 401) {
-          message = 'This endpoint serves whats-new.kr only. For programmatic/agent access, use POST /mcp.';
+          const siteHost = new URL(env.SITE_URL || DEFAULT_SITE_URL).host;
+          message = `This endpoint serves ${siteHost} only. For programmatic/agent access, use POST /mcp.`;
         }
         return jsonResponse({ error: message }, { status }, headers);
       }

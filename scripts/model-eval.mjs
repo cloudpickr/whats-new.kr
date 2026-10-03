@@ -24,11 +24,12 @@
 //   CURRENT_MODEL    baseline override; normally resolved from the live
 //                    deployment via GET /api/stats (see resolveCurrentModel).
 //   CURRENT_MODEL_FALLBACK  used only if /api/stats is unreachable.
-//   API_BASE         default https://api.whats-new.kr
+//   API_BASE         default derived from SITE_URL (api.<host>)
 
 const ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID;
 const TOKEN = process.env.CLOUDFLARE_API_TOKEN;
-const API = process.env.API_BASE || 'https://api.whats-new.kr';
+const SITE_URL = process.env.SITE_URL || 'https://whats-new.kr';
+const API = process.env.API_BASE || `https://api.${new URL(SITE_URL).host}`;
 const MCP_TOKEN = process.env.MCP_TOKEN || '';
 const SAMPLES = Number(process.env.EVAL_SAMPLES || 8);
 

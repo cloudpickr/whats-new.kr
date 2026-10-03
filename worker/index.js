@@ -2147,21 +2147,23 @@ export default {
 
       if (rpc.method === 'tools/list') {
         return respond(rpc.id, { tools: [
-          { name: 'search_releases', description: 'Search cloud release notes by keyword, CSP, or date range. Supports Korean (ko) and English (en).', inputSchema: {
+          { name: 'search_releases', description: 'Search cloud release notes by keyword, CSP, or date range. aws/gcp/azure have Korean (ko) and English (en) AI summaries; oracle/openai/ibm are vendor-original English only, reachable with format="source".', inputSchema: {
             type: 'object', properties: {
               query: { type: 'string', description: 'Search keyword — matches title and summary' },
-              csp: { type: 'string', enum: ['aws', 'gcp', 'azure'], description: 'Cloud provider filter (lowercase)' },
-              lang: { type: 'string', enum: ['ko', 'en'], description: 'Output language: ko (default) or en, when available.' },
+              csp: { type: 'string', enum: ['aws', 'gcp', 'azure', 'oracle', 'openai', 'ibm'], description: 'Cloud provider filter (lowercase). aws/gcp/azure support ko/en summaries and format="source"; oracle/openai/ibm are source-only (format="source", vendor-original English, no translation).' },
+              lang: { type: 'string', enum: ['ko', 'en'], description: 'Output language for format="summary": ko (default) or en, when available. Ignored for format="source" (always vendor-original English).' },
+              format: { type: 'string', enum: ['summary', 'source'], description: 'summary (default): localized AI summary (aws/gcp/azure only). source: vendor-original English text from ingestion (all CSPs incl. oracle/openai/ibm); requires Authorization: Bearer <mcp token>.' },
               days: { type: 'number', description: 'Look back N days from now (default 30). Ignored if start_date is set.' },
               start_date: { type: 'string', description: 'Start date (YYYY-MM-DD). Use with end_date for exact range.' },
               end_date: { type: 'string', description: 'End date (YYYY-MM-DD). Used with start_date.' },
               limit: { type: 'number', description: 'Max results (default: 50, or 10/day for date ranges, max 100)' },
             },
           }},
-          { name: 'get_release', description: 'Get a specific release note by article ID.', inputSchema: {
+          { name: 'get_release', description: 'Get a specific release note by article ID. format="source" returns vendor-original English for any CSP (incl. oracle/openai/ibm); format="summary" returns a localized AI summary (aws/gcp/azure only).', inputSchema: {
             type: 'object', properties: {
               id: { type: 'number', description: 'Article ID' },
-              lang: { type: 'string', description: 'Language (default "ko").' },
+              lang: { type: 'string', description: 'Language for format="summary" (default "ko"). Ignored for format="source".' },
+              format: { type: 'string', enum: ['summary', 'source'], description: 'summary (default): localized AI summary (aws/gcp/azure only). source: vendor-original English text (all CSPs incl. oracle/openai/ibm); requires Authorization: Bearer <mcp token>.' },
             }, required: ['id'],
           }},
           { name: 'get_stats', description: 'Get current translation/review pipeline status.', inputSchema: { type: 'object', properties: {} }},

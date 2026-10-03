@@ -3,6 +3,12 @@ on:
   push:
     branches: [main]
 
+# These jobs only check out code and deploy to Cloudflare via CLOUDFLARE_API_TOKEN;
+# they never use GITHUB_TOKEN to write to the repo. Restrict it to read-only so a
+# compromised step can't push commits, open PRs, or alter releases.
+permissions:
+  contents: read
+
 # Only the latest push to main needs to deploy; cancel any in-progress run for
 # the same ref so rapid successive pushes don't stack up redundant builds.
 concurrency:

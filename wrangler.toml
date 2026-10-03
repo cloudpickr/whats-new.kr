@@ -32,6 +32,10 @@ binding = "AI"
 # wrangler secret put API_KEY_RING
 # Recovery token for emergency admin access
 # wrangler secret put API_KEY_RECOVERY_TOKEN
+# Admin IP allowlist for POST /api/pipeline. Deploy All uploads the GitHub
+# Actions secret ALLOWED_ADMIN_IPS as a Worker secret. An empty value denies
+# every admin IP. Do not commit the address.
+# wrangler secret put ALLOWED_ADMIN_IPS
 [vars]
 ALERT_WEBHOOK_URL = ""
 SITE_URL = "https://whats-new.kr"
@@ -39,7 +43,6 @@ BACKLOG_QUEUE_BATCH_SIZE = "25"
 AUTH_ENFORCEMENT = "on"
 SITE_API_ENFORCEMENT = "on"
 TRUSTED_IP_BYPASS = "off"
-ALLOWED_ADMIN_IPS = "211.207.226.107"
 # Translation model: switched from @cf/zai-org/glm-4.7-flash (a reasoning model
 # that burned ~3.4x the neurons on discarded reasoning tokens) to mistral-small.
 # Eval on 10 real articles: 24.1 vs 82.2 neurons/card at comparable Korean
@@ -53,7 +56,6 @@ BACKLOG_QUEUE_BATCH_SIZE = "25"
 AUTH_ENFORCEMENT = "on"
 SITE_API_ENFORCEMENT = "on"
 TRUSTED_IP_BYPASS = "off"
-ALLOWED_ADMIN_IPS = "211.207.226.107"
 TRANSLATION_MODEL = "@cf/mistralai/mistral-small-3.1-24b-instruct"
 
 routes = [

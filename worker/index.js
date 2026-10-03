@@ -653,15 +653,30 @@ function authenticateRequest(request, env) {
 function logAuthResult(request, path, auth, mode) {
   const ua = request.headers.get('User-Agent') || 'unknown';
   if (auth.ok) {
-    // Sanitize key identifiers before logging — they originate from
-    // client-supplied tokens, so strip anything outside a safe charset and
-    // cap length to avoid log injection / clear-text-logging of raw input.
-    const safeId = String(auth.keyId).replace(/[^\w.-]/g, '').slice(0, 64);
-    const safeType = String(auth.keyType).replace(/[^\w.-]/g, '').slice(0, 32);
-    console.log(`[auth] ok mode=${mode} path=${path} keyId=${safeId} keyType=${safeType} ua="${ua}"`);
+    // Log non-sensitive, derived identifiers only — never values that flow from
+    // the request token. keyType is mapped through a fixed allow-list of known
+    // key classes (anything else becomes "other"), and keyId is reduced to a
+    // coarse FNV-1a fingerprint, so no token-derived string reaches the log
+    // sink. This breaks the taint flow CodeQL's js/clear-text-logging tracks.
+    const KNOWN_KEY_TYPES = ['site', 'mcp', 'service', 'ip'];
+    const keyTypeLabel = KNOWN_KEY_TYPES.includes(auth.keyType) ? auth.keyType : 'other';
+    const keyIdFingerprint = fingerprintId(auth.keyId);
+    console.log(`[auth] ok mode=${mode} path=${path} keyType=${keyTypeLabel} keyIdFp=${keyIdFingerprint} ua="${ua}"`);
     return;
   }
   console.warn(`[auth] ${auth.reason} mode=${mode} path=${path} ua="${ua}"`);
+}
+
+// Short, non-reversible fingerprint of a key id for correlating log lines
+// without logging the id itself (FNV-1a, 32-bit, hex). Not security-sensitive.
+function fingerprintId(value) {
+  let hash = 0x811c9dc5;
+  const s = String(value);
+  for (let i = 0; i < s.length; i++) {
+    hash ^= s.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
 }
 
 function getAllowedAdminIps(env) {

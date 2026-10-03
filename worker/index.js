@@ -653,7 +653,12 @@ function authenticateRequest(request, env) {
 function logAuthResult(request, path, auth, mode) {
   const ua = request.headers.get('User-Agent') || 'unknown';
   if (auth.ok) {
-    console.log(`[auth] ok mode=${mode} path=${path} keyId=${auth.keyId} keyType=${auth.keyType} ua="${ua}"`);
+    // Sanitize key identifiers before logging — they originate from
+    // client-supplied tokens, so strip anything outside a safe charset and
+    // cap length to avoid log injection / clear-text-logging of raw input.
+    const safeId = String(auth.keyId).replace(/[^\w.-]/g, '').slice(0, 64);
+    const safeType = String(auth.keyType).replace(/[^\w.-]/g, '').slice(0, 32);
+    console.log(`[auth] ok mode=${mode} path=${path} keyId=${safeId} keyType=${safeType} ua="${ua}"`);
     return;
   }
   console.warn(`[auth] ${auth.reason} mode=${mode} path=${path} ua="${ua}"`);

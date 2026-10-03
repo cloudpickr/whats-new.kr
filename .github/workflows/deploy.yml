@@ -25,7 +25,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Node 22+ is required by wrangler 4 / @astrojs/cloudflare 14.
+          node-version: 22
 
       # ALLOWED_ADMIN_IPS holds a public IP and is intentionally NOT in source.
       # It is injected into the Worker at deploy time from this GitHub secret.

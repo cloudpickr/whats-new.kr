@@ -1,22 +1,41 @@
-// Shared helper for SSR calls from this Astro site to its own Worker API
-// (api.whats-new.kr). Sends the "site" API_KEY_RING token so the Worker can
-// tell our own server-side rendering apart from direct/agent calls to
-// /api/articles, which should go through POST /mcp instead. See worker/index.js
-// (requiredKeyTypeForPath, SITE_API_ENFORCEMENT) and README.md for the gate.
+import { env } from 'cloudflare:workers';
+import backend from '../../worker/index.js';
+
+// SSR → backend API bridge for the unified Worker.
 //
-// The SITE_API_TOKEN Pages secret must match the "site"-type entry in the
-// Worker's API_KEY_RING; SSR only authenticates once this deployment ships
-// with the rotated token in place.
+// This project runs one Worker that serves both the Astro SSR site and the
+// backend API (worker/index.js). SSR must NOT call the API over HTTP: a Worker
+// cannot send a subrequest to its own origin (Cloudflare error 1042), and the
+// api.<host> round-trip would also need the website-only auth token. Instead,
+// SSR invokes the backend fetch handler in-process and reads the Response
+// directly. The X-Internal-SSR header marks the call as trusted so the backend
+// skips the /api/articles website-only gate; src/worker.ts strips that header
+// from every inbound external request, so it cannot be forged from outside.
 
-export function apiBase(site: URL) {
-  return `${site.protocol}//api.${site.host}`;
-}
+type BackendFetch = (request: Request, env: unknown, ctx: ExecutionContext) => Promise<Response>;
 
-// `locals` is the Astro/APIContext locals object. The @astrojs/cloudflare
-// adapter puts Pages bindings/vars at locals.runtime.env; this project has no
-// existing App.Locals typing, so this is intentionally loosely typed rather
-// than introducing one just for this.
-export function apiHeaders(locals: unknown): Record<string, string> {
-  const token = (locals as { runtime?: { env?: { SITE_API_TOKEN?: string } } })?.runtime?.env?.SITE_API_TOKEN;
-  return token ? { Authorization: `Bearer ${token}` } : {};
+// Minimal ExecutionContext stub — the /api/articles path doesn't use waitUntil
+// or passThroughOnException, but the handler signature expects a ctx.
+const noopCtx = {
+  waitUntil(_promise: Promise<unknown>) {},
+  passThroughOnException() {},
+  props: {},
+} as unknown as ExecutionContext;
+
+// Call the backend API handler in-process. `path` is an API path like
+// "/api/articles?csp=aws&lang=ko&limit=15". Returns the parsed JSON body typed
+// as T. Any failure (non-OK status, bad JSON) resolves to `fallback` so a page
+// still renders.
+export async function callBackend<T>(path: string, fallback: T): Promise<T> {
+  try {
+    const req = new Request(`https://internal${path}`, {
+      method: 'GET',
+      headers: { 'X-Internal-SSR': '1' },
+    });
+    const res = await (backend as { fetch: BackendFetch }).fetch(req, env, noopCtx);
+    if (!res.ok) return fallback;
+    return (await res.json()) as T;
+  } catch {
+    return fallback;
+  }
 }

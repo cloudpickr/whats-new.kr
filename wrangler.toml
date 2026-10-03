@@ -1,8 +1,17 @@
 name = "cloud-whats-new"
 compatibility_date = "2026-03-01"
+compatibility_flags = ["nodejs_compat"]
 account_id = "38e65f79cdcaa062a73dfda669b8bb7d"
 
-main = "worker/index.js"
+# Unified Worker: Astro SSR + backend API/pipeline. The Astro Cloudflare adapter
+# (v14) builds src/worker.ts into the deployed entry and serves static client
+# assets via the ASSETS binding. See src/worker.ts for request routing.
+main = "src/worker.ts"
+
+# Session storage KV required by Astro's Sessions API on the Cloudflare adapter.
+[[kv_namespaces]]
+binding = "SESSION"
+id = "41cbef62b42c49ec9e1cf2f76a5c5c54"
 
 [[d1_databases]]
 binding = "DB"
@@ -26,6 +35,15 @@ crons = ["*/1 * * * *"]
 [ai]
 binding = "AI"
 
+# Custom domains served by this unified Worker. Both the public site
+# (whats-new.kr) and the API host (api.whats-new.kr) route to the same Worker;
+# src/worker.ts dispatches /api/* and /mcp to the backend and everything else
+# to Astro SSR.
+routes = [
+  { pattern = "whats-new.kr", custom_domain = true },
+  { pattern = "api.whats-new.kr", custom_domain = true }
+]
+
 # Alert webhook (Discord/Slack) — set via wrangler secret
 # wrangler secret put ALERT_WEBHOOK_URL
 # Key ring for protected APIs and MCP
@@ -47,16 +65,3 @@ TRUSTED_IP_BYPASS = "off"
 # Eval on 10 real articles: 24.1 vs 82.2 neurons/card at comparable Korean
 # quality. Remove this var to fall back to GLM. See scripts/model-eval.mjs.
 TRANSLATION_MODEL = "@cf/mistralai/mistral-small-3.1-24b-instruct"
-
-
-[env.production.vars]
-SITE_URL = "https://whats-new.kr"
-BACKLOG_QUEUE_BATCH_SIZE = "25"
-AUTH_ENFORCEMENT = "on"
-SITE_API_ENFORCEMENT = "on"
-TRUSTED_IP_BYPASS = "off"
-TRANSLATION_MODEL = "@cf/mistralai/mistral-small-3.1-24b-instruct"
-
-routes = [
-  { pattern = "api.whats-new.kr", custom_domain = true }
-]

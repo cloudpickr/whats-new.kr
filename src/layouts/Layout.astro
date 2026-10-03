@@ -179,14 +179,14 @@ const fontPreload: Record<string, string> = {
         const iconLight = document.getElementById('icon-light');
         if (!toggle || !iconDark || !iconLight) return;
 
-        function updateIcons() {
+        function updateIcons(el: HTMLElement, dk: HTMLElement, lt: HTMLElement) {
           const dark = html.getAttribute('data-theme') === 'dark';
-          iconDark.classList.toggle('hidden', dark);
-          iconLight.classList.toggle('hidden', !dark);
-          toggle.setAttribute('aria-pressed', dark ? 'true' : 'false');
+          dk.classList.toggle('hidden', dark);
+          lt.classList.toggle('hidden', !dark);
+          el.setAttribute('aria-pressed', dark ? 'true' : 'false');
         }
 
-        updateIcons();
+        updateIcons(toggle, iconDark, iconLight);
 
         toggle.onclick = () => {
           document.body.style.transition = 'background-color 0.2s, color 0.2s';
@@ -194,7 +194,7 @@ const fontPreload: Record<string, string> = {
           if (nextDark) html.setAttribute('data-theme', 'dark');
           else html.removeAttribute('data-theme');
           localStorage.setItem('theme', nextDark ? 'dark' : 'light');
-          updateIcons();
+          updateIcons(toggle, iconDark, iconLight);
         };
       }
 

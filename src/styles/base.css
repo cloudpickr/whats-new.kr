@@ -1,8 +1,11 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities; 
+@import "tailwindcss";
 
-@layer base {    
+/* Dark mode is driven by a `data-theme="dark"` attribute on <html> (set by the
+   theme toggle in Layout.astro), not Tailwind's default `.dark` class. Map the
+   `dark:` variant to that attribute so utilities like `dark:hover:*` match. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@layer base {
   body {
     font-family: "Pretendard Variable", -apple-system, "Apple SD Gothic Neo", system-ui, sans-serif;
     line-height: 1.6;

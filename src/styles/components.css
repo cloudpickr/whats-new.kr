@@ -118,17 +118,18 @@
 .filter-btn--retired  { --s-text: var(--status-retired-text);  --s-border: var(--status-retired-text);  --s-bg: var(--status-retired-bg);  --s-fill: var(--status-retired-fill, var(--status-retired-text)); }
 .filter-btn--fallback { --s-text: var(--status-fallback-text); --s-border: var(--status-fallback-text); --s-bg: var(--status-fallback-bg); --s-fill: var(--status-fallback-fill, var(--status-fallback-text)); }
 
-/* AWS: Cloudscape normal/primary button — 2px border pill, filled when active */
-[data-vendor="aws"] .filter-btn { border-width: 2px; font-weight: 700; }
+/* AWS: Cloudscape normal/primary button — 2px border pill. Active uses the same
+ * tonal fill + status-colored text as GCP/Azure so the color transition is
+ * consistent across vendors; the 2px border and 700 weight keep the AWS feel. */
+[data-vendor="aws"] .filter-btn { border-width: 2px; font-weight: 700; border-color: var(--color-border); color: var(--color-text-primary); }
 [data-vendor="aws"] .filter-btn:hover { background: color-mix(in srgb, var(--s-fill) 8%, transparent); }
-[data-vendor="aws"] .filter-btn.is-active { background: var(--s-fill); border-color: var(--s-fill); color: #FFFFFF; }
+[data-vendor="aws"] .filter-btn.is-active { background: var(--s-bg); border-color: var(--s-border); color: var(--s-text); }
 [data-vendor="aws"] .filter-btn.is-active .count { opacity: .85; }
-[data-vendor="aws"][data-theme="dark"] .filter-btn.is-active { color: #000716; }
 
 /* GCP: M3 filter chip — 1px outline, 8px; selected = tonal + leading check */
 [data-vendor="gcp"] .filter-btn { border-color: var(--color-outline); color: var(--color-text-primary); font-weight: 500; }
 [data-vendor="gcp"] .filter-btn:hover { background: color-mix(in srgb, var(--color-on-surface) 8%, transparent); }
-[data-vendor="gcp"] .filter-btn.is-active { background: var(--s-bg); border-color: transparent; color: var(--s-text); }
+[data-vendor="gcp"] .filter-btn.is-active { background: var(--s-bg); border-color: var(--s-border); color: var(--s-text); }
 [data-vendor="gcp"] .filter-btn.is-active::before {
   content: ""; width: 14px; height: 14px; background: currentColor;
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z'/%3E%3C/svg%3E") center / contain no-repeat;
@@ -180,6 +181,18 @@
 @media (min-width: 640px)  { .cards-grid { gap: 1rem; } }
 @media (min-width: 768px)  { .cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 1024px) { .cards-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* Skip rendering (layout + paint) of off-screen cards. Detail pages ship up to
+ * 80 cards; without this the browser lays out and paints all of them on load,
+ * which dominates mobile TBT/LCP. content-visibility:auto renders only cards
+ * near the viewport and defers the rest until they scroll in. The DOM stays
+ * intact so client-side search/filter (which walks every .card-wrapper) still
+ * works. contain-intrinsic-size reserves an estimated height so the scrollbar
+ * and layout stay stable (no CLS) before a card is rendered. */
+.card-wrapper {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 220px;
+}
 
 /* ---------- Page header card (shared skeleton; vendor skin via tokens) ---------- */
 .page-head {

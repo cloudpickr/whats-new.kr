@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { apiBase, apiHeaders } from '../lib/apiClient';
+import { callBackend } from '../lib/apiClient';
 
 const csps = ['aws', 'gcp', 'azure'] as const;
 
@@ -12,24 +12,20 @@ function xmlEscape(value: string) {
     .replace(/'/g, '&apos;');
 }
 
-async function getLatestPubDate(site: URL, csp: string, locals: unknown) {
-  const base = apiBase(site);
-  try {
-    const response = await fetch(`${base}/api/articles?csp=${csp}&lang=ko&limit=1`, { headers: apiHeaders(locals) });
-    if (!response.ok) return null;
-    const payload = await response.json();
-    return payload.items?.[0]?.pub_date || null;
-  } catch {
-    return null;
-  }
+async function getLatestPubDate(csp: string) {
+  const payload = await callBackend<{ items?: Array<{ pub_date?: string }> }>(
+    `/api/articles?csp=${csp}&lang=ko&limit=1`,
+    { items: [] }
+  );
+  return payload.items?.[0]?.pub_date || null;
 }
 
-export const GET: APIRoute = async ({ site, locals }) => {
+export const GET: APIRoute = async ({ site }) => {
   if (!site) {
     return new Response('site is not configured', { status: 500 });
   }
 
-  const latestDates = await Promise.all(csps.map((csp) => getLatestPubDate(site, csp, locals)));
+  const latestDates = await Promise.all(csps.map((csp) => getLatestPubDate(csp)));
   const homeLastmod = latestDates.filter(Boolean).sort().reverse()[0] || new Date().toISOString();
   const urls = [
     { loc: new URL('/', site).toString(), priority: '1.0', changefreq: 'hourly', lastmod: homeLastmod },

@@ -653,7 +653,12 @@ function authenticateRequest(request, env) {
 function logAuthResult(request, path, auth, mode) {
   const ua = request.headers.get('User-Agent') || 'unknown';
   if (auth.ok) {
-    console.log(`[auth] ok mode=${mode} path=${path} keyId=${auth.keyId} keyType=${auth.keyType} ua="${ua}"`);
+    // Sanitize key identifiers before logging — they originate from
+    // client-supplied tokens, so strip anything outside a safe charset and
+    // cap length to avoid log injection / clear-text-logging of raw input.
+    const safeId = String(auth.keyId).replace(/[^\w.-]/g, '').slice(0, 64);
+    const safeType = String(auth.keyType).replace(/[^\w.-]/g, '').slice(0, 32);
+    console.log(`[auth] ok mode=${mode} path=${path} keyId=${safeId} keyType=${safeType} ua="${ua}"`);
     return;
   }
   console.warn(`[auth] ${auth.reason} mode=${mode} path=${path} ua="${ua}"`);
@@ -1899,6 +1904,14 @@ export default {
     const isProtectedApi =
       (request.method === 'POST' && (path === '/api/pipeline' || path === '/mcp')) ||
       (request.method === 'GET' && path === '/api/articles');
+    // Trusted in-process call from this same Worker's SSR (see src/worker.ts).
+    // The unified Worker serves SSR and this API together, so SSR invokes
+    // fetch() directly rather than over HTTP (a Worker can't subrequest its own
+    // origin — Cloudflare error 1042). The entrypoint strips this header from
+    // every inbound external request before routing, so it can't be forged from
+    // outside; only the in-process SSR caller sets it. Such calls skip the
+    // website-only /api/articles auth gate.
+    const isInternalSsrCall = request.headers.get('X-Internal-SSR') === '1';
     const requiresAdminIp = request.method === 'POST' && (path === '/api/pipeline');
     if (path === '/mcp' && request.method === 'POST') {
       // /mcp itself stays reachable without auth (summary/discovery calls).
@@ -1912,7 +1925,7 @@ export default {
     }
 
     let authContext = { ok: false, reason: 'not_checked' };
-    if (isProtectedApi) {
+    if (isProtectedApi && !isInternalSsrCall) {
       authContext = authenticateRequest(request, env);
       const requiredType = requiredKeyTypeForPath(path);
       if (authContext.ok && requiredType && authContext.keyType !== requiredType) {

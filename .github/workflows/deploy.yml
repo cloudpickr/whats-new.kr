@@ -54,7 +54,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy
-          secrets: |
+          vars: |
             ALLOWED_ADMIN_IPS
         env:
           ALLOWED_ADMIN_IPS: ${{ secrets.ALLOWED_ADMIN_IPS }}

@@ -32,10 +32,9 @@ binding = "AI"
 # wrangler secret put API_KEY_RING
 # Recovery token for emergency admin access
 # wrangler secret put API_KEY_RECOVERY_TOKEN
-# Admin IP allowlist for POST /api/pipeline. Deploy All uploads the GitHub
-# Actions secret ALLOWED_ADMIN_IPS as a Worker secret. An empty value denies
-# every admin IP. Do not commit the address.
-# wrangler secret put ALLOWED_ADMIN_IPS
+# Admin IP allowlist for POST /api/pipeline. Not committed. Deploy All binds
+# the GitHub Actions secret ALLOWED_ADMIN_IPS as a Worker variable. An empty
+# value denies every admin IP.
 [vars]
 ALERT_WEBHOOK_URL = ""
 SITE_URL = "https://whats-new.kr"

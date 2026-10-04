@@ -14,6 +14,7 @@ const csps = [
   { id: 'aws', name: 'Amazon Web Services', color: '#FF9900', accent: '#232F3E', font: "'Amazon Ember', sans-serif" },
   { id: 'gcp', name: 'Google Cloud', color: 'linear-gradient(to right, #4285F4 25%, #EA4335 25%, #EA4335 50%, #FBBC04 50%, #FBBC04 75%, #34A853 75%)', accent: '#4285F4', isGradient: true, font: "'Google Sans', sans-serif", weight: 700 },
   { id: 'azure', name: 'Microsoft Azure', color: '#0078D4', accent: '#50E6FF', font: "'Segoe UI Web', 'Segoe UI', sans-serif" },
+  { id: 'oci', name: 'Oracle Cloud', color: '#C74634', accent: '#C74634', font: "'Oracle Sans', 'Inter', -apple-system, 'Helvetica Neue', 'Segoe UI', Roboto, sans-serif", weight: 600 },
 ];
 
 const data: Record<string, any[]> = {};
@@ -31,7 +32,7 @@ const structuredData = [
     name: 'What\'s New 한국어 요약',
     url: Astro.site?.toString(),
     inLanguage: 'ko-KR',
-    description: 'AWS, Google Cloud, Microsoft Azure의 최신 업데이트를 한국어로 요약한 클라우드 릴리스 노트 사이트입니다.',
+    description: 'AWS, Google Cloud, Microsoft Azure, Oracle Cloud의 최신 업데이트를 한국어로 요약한 클라우드 릴리스 노트 사이트입니다.',
   },
   {
     '@context': 'https://schema.org',
@@ -39,7 +40,7 @@ const structuredData = [
     name: '클라우드 최신 업데이트 | What\'s New 한국어 요약',
     url: new URL('/', Astro.site).toString(),
     inLanguage: 'ko-KR',
-    description: 'AWS, Google Cloud, Microsoft Azure의 최신 업데이트를 한국어로 요약해 보여주는 클라우드 릴리스 노트 대시보드입니다.',
+    description: 'AWS, Google Cloud, Microsoft Azure, Oracle Cloud의 최신 업데이트를 한국어로 요약해 보여주는 클라우드 릴리스 노트 대시보드입니다.',
   },
   {
     '@context': 'https://schema.org',
@@ -72,13 +73,13 @@ const structuredData = [
       <span class="text-xs font-semibold px-2 py-0.5 rounded-full ml-1" style="background: color-mix(in srgb, var(--color-primary) 15%, transparent); color: var(--color-primary); vertical-align: middle;">Beta</span>
     </h1>
     <p class="text-sm sm:text-lg max-w-xl mx-auto leading-relaxed" style="color: var(--color-text-secondary); font-family: 'Pretendard Variable', var(--font-family);">
-      Amazon Web Services · Google Cloud · Microsoft Azure<br/>
+      Amazon Web Services · Google Cloud · Microsoft Azure · Oracle Cloud<br/>
       <span class="font-medium">핵심 클라우드 업데이트만 골라내어 깔끔하게 보여드립니다</span>
     </p>
   </div>
 
-  <!-- 3-column layout -->
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+  <!-- Vendor columns: 1 / 2 / 4 across breakpoints (4 CSPs) -->
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 sm:gap-8">
     {csps.map(c => (
       <section class="p-5 rounded-2xl" style="background: var(--color-surface); border: 1px solid var(--color-border); box-shadow: var(--card-shadow);">
         <div class="flex items-center justify-between mb-4 pb-2 border-b-2" style={c.isGradient ? `border-image: ${c.color} 1;` : `border-color: ${c.color};`}>
@@ -88,8 +89,8 @@ const structuredData = [
               {c.name}
             </h2>
           </div>
-          <a href={`/${c.id}`} class="text-xs font-bold px-2.5 py-1 rounded-full transition-colors hover:opacity-80" style={`color: ${c.isGradient ? c.accent : c.color}; background: color-mix(in srgb, ${c.isGradient ? c.accent : c.color} 10%, transparent);`}>
-            전체 보기 →
+          <a href={`/${c.id}`} aria-label={`${c.name} 전체 보기`} title={`${c.name} 전체 보기`} class="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-sm font-bold transition-colors hover:opacity-80" style={`color: ${c.isGradient ? c.accent : c.color}; background: color-mix(in srgb, ${c.isGradient ? c.accent : c.color} 10%, transparent);`}>
+            →
           </a>
         </div>
         <ul class="space-y-0">

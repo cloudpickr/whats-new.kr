@@ -3,9 +3,13 @@
  * behind a per-vendor conditional import for performance: the home page must
  * ship AWS / Google Cloud / Azure brand faces.
  * (Google Sans is loaded via <link> in Layout.astro — a CSS @import would
- *  create a render-blocking request chain.) */
+ *  create a render-blocking request chain.)
+ * (Oracle Sans is a self-hosted proprietary OCI brand face, shipped at the
+ *  owner's explicit decision; Inter (SIL OFL) is its load-failure fallback.) */
 @import "./segoe-ui.css";
 @import "./amazon-ember.css";
+@import "./oracle-sans.css";
+@import "./inter.css";
 
 /* ============================================================
    Token contract (every [data-vendor] must define all of these)
@@ -47,16 +51,17 @@
 }
 [data-vendor="home"][data-theme="dark"] {
   --color-primary: #7B93FF; --color-accent: #BB86FC;
-  --color-bg: #0F1117; --color-surface: #1A1D27; --color-border: #2D3148;
-  --color-text-primary: #F4F4F6; --color-text-secondary: #8B8FA8;
-  --nav-bg: #0F1117; --card-border: 1px solid #2D3148; --card-hover-border: 1px solid #4B5078;
-  --card-hover-bg: #1A1D27; --card-active-bg: #1F2331;
+  --color-bg: #0C0E14; --color-surface: #171A24; --color-border: #2A2E42;
+  --color-text-primary: #F4F4F6; --color-text-secondary: #9499B3;
+  --nav-bg: #0C0E14; --card-border: 1px solid #2A2E42; --card-hover-border: 1px solid #7B93FF;
+  --card-hover-bg: #1E2231; --card-active-bg: #242941;
+  --card-shadow: 0 1px 3px rgba(0,0,0,0.5); --card-hover-shadow: 0 8px 24px rgba(0,0,0,0.6);
   --focus-ring: 3px solid #7B93FF;
-  --status-ga-bg: rgba(74,222,128,.12);  --status-ga-text: #86efac;  --status-ga-border: rgba(74,222,128,.3);
-  --status-preview-bg: rgba(96,165,250,.12); --status-preview-text: #93c5fd; --status-preview-border: rgba(96,165,250,.3);
-  --status-beta-bg: rgba(192,132,252,.12); --status-beta-text: #d8b4fe; --status-beta-border: rgba(192,132,252,.3);
-  --status-retired-bg: rgba(248,113,113,.12); --status-retired-text: #fca5a5; --status-retired-border: rgba(248,113,113,.3);
-  --status-fallback-bg: rgba(251,191,36,.12); --status-fallback-text: #fde047; --status-fallback-border: rgba(251,191,36,.3);
+  --status-ga-bg: rgba(74,222,128,.16);  --status-ga-text: #86efac;  --status-ga-border: rgba(74,222,128,.4);
+  --status-preview-bg: rgba(96,165,250,.16); --status-preview-text: #93c5fd; --status-preview-border: rgba(96,165,250,.4);
+  --status-beta-bg: rgba(192,132,252,.16); --status-beta-text: #d8b4fe; --status-beta-border: rgba(192,132,252,.4);
+  --status-retired-bg: rgba(248,113,113,.16); --status-retired-text: #fca5a5; --status-retired-border: rgba(248,113,113,.4);
+  --status-fallback-bg: rgba(251,191,36,.16); --status-fallback-text: #fde047; --status-fallback-border: rgba(251,191,36,.4);
 }
 
 /* ============================================
@@ -90,16 +95,21 @@
 }
 [data-vendor="aws"][data-theme="dark"] {
   --color-primary: #539FE5; --color-accent: #FF9900;
-  --color-bg: #16191f; --color-surface: #232730; --color-border: #303846;
-  --color-text-primary: #eaeded; --color-text-secondary: #aab7c4;
-  --nav-bg: #16191f; --card-border: 1px solid #303846; --card-hover-border: 1px solid #539FE5;
-  --card-hover-bg: #1E2A3C; --card-active-bg: #192B45;
+  /* Cloudscape dark: layered surfaces — bg is darkest, cards sit on an
+     elevated surface so the grid reads with depth instead of flat. */
+  --color-bg: #0F1B2A; --color-surface: #1B2A41; --color-border: #2E3C50;
+  --color-text-primary: #eaeded; --color-text-secondary: #b4c0cf;
+  --nav-bg: #0D1521; --card-border: 1px solid #2E3C50; --card-hover-border: 1px solid #539FE5;
+  --card-hover-bg: #22354F; --card-active-bg: #28405F;
+  --card-shadow: 0 1px 0 rgba(255,255,255,0.03) inset, 0 1px 3px rgba(0,0,0,0.5);
+  --card-hover-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 6px 18px rgba(0,0,0,0.55);
   --focus-ring: 2px solid #539FE5;
-  --status-ga-bg: rgba(41,173,50,.12);   --status-ga-text: #29AD32;   --status-ga-border: rgba(41,173,50,.5);
-  --status-preview-bg: rgba(83,159,229,.12); --status-preview-text: #539FE5; --status-preview-border: rgba(83,159,229,.5);
-  --status-beta-bg: rgba(224,202,87,.12); --status-beta-text: #E0CA57; --status-beta-border: rgba(224,202,87,.5);
-  --status-retired-bg: rgba(235,111,111,.12); --status-retired-text: #EB6F6F; --status-retired-border: rgba(235,111,111,.5);
-  --status-fallback-bg: rgba(141,153,168,.12); --status-fallback-text: #8D99A8; --status-fallback-border: rgba(141,153,168,.5);
+  --nav-active-bg: #FF9900; --nav-active-color: #16191F;
+  --status-ga-bg: rgba(41,173,50,.18);   --status-ga-text: #4FD35C;   --status-ga-border: rgba(41,173,50,.6);
+  --status-preview-bg: rgba(83,159,229,.18); --status-preview-text: #6FB4F0; --status-preview-border: rgba(83,159,229,.6);
+  --status-beta-bg: rgba(224,202,87,.18); --status-beta-text: #ECD866; --status-beta-border: rgba(224,202,87,.6);
+  --status-retired-bg: rgba(235,111,111,.18); --status-retired-text: #F58585; --status-retired-border: rgba(235,111,111,.6);
+  --status-fallback-bg: rgba(141,153,168,.18); --status-fallback-text: #A3B0BF; --status-fallback-border: rgba(141,153,168,.6);
   --status-ga-fill: #29AD32; --status-preview-fill: #539FE5; --status-beta-fill: #E0CA57; --status-retired-fill: #EB6F6F; --status-fallback-fill: #8D99A8;
 }
 
@@ -140,21 +150,23 @@
   --color-primary: #8AB4F8; --color-accent: #81C995;
   --color-google-blue: #8AB4F8; --color-google-red: #F28B82;
   --color-google-yellow: #FDD663; --color-google-green: #81C995;
-  --color-bg: #202124; --color-surface: #292A2D; --color-border: #3C4043;
-  --color-surface-container: #2D2E31; --color-surface-container-high: #333438;
+  /* M3 dark tonal elevation: each surface step mixes a little primary in, so
+     raised surfaces read slightly brighter + bluer rather than plain grey. */
+  --color-bg: #1A1C1E; --color-surface: #22262B; --color-border: #3C4043;
+  --color-surface-container: #272B30; --color-surface-container-high: #2E333A;
   --color-outline: #8E918F; --color-on-surface: #E3E3E3;
   --color-text-primary: #E8EAED; --color-text-secondary: #9AA0A6;
-  --nav-bg: #292A2D;
-  --card-shadow: 0 1px 3px rgba(0,0,0,0.4); --card-hover-shadow: 0 4px 12px rgba(0,0,0,0.5);
-  --card-hover-bg: color-mix(in srgb, #E3E3E3 8%, #292A2D);
-  --card-active-bg: color-mix(in srgb, #E3E3E3 12%, #292A2D);
+  --nav-bg: #22262B;
+  --card-shadow: 0 1px 3px rgba(0,0,0,0.5); --card-hover-shadow: 0 6px 18px rgba(0,0,0,0.6);
+  --card-hover-bg: color-mix(in srgb, #8AB4F8 10%, #22262B);
+  --card-active-bg: color-mix(in srgb, #8AB4F8 16%, #22262B);
   --focus-ring: 2px solid #8AB4F8;
   --nav-active-bg: #004A77; --nav-active-color: #C2E7FF;
-  --status-ga-bg: rgba(129,201,149,.14);  --status-ga-text: #81C995;
-  --status-preview-bg: rgba(138,180,248,.14); --status-preview-text: #8AB4F8;
-  --status-beta-bg: rgba(197,138,249,.14); --status-beta-text: #C58AF9;
-  --status-retired-bg: rgba(242,139,130,.14); --status-retired-text: #F28B82;
-  --status-fallback-bg: rgba(253,214,99,.14); --status-fallback-text: #FDD663;
+  --status-ga-bg: rgba(129,201,149,.18);  --status-ga-text: #9AD6AB;
+  --status-preview-bg: rgba(138,180,248,.18); --status-preview-text: #A6C6FA;
+  --status-beta-bg: rgba(197,138,249,.18); --status-beta-text: #D4A3FA;
+  --status-retired-bg: rgba(242,139,130,.18); --status-retired-text: #F6A69F;
+  --status-fallback-bg: rgba(253,214,99,.18); --status-fallback-text: #FDDE7A;
 }
 
 /* ============================================
@@ -191,19 +203,72 @@
 [data-vendor="azure"][data-theme="dark"] {
   --color-primary: #479EF5; --color-accent: #2886DE;
   --color-primary-hover: #62ABF5; --color-primary-pressed: #96C6FA;
-  --color-bg: #1B1A19; --color-surface: #292827; --color-border: #3B3A39;
+  /* Fluent 2 dark: neutral canvas with a brighter elevated card layer and a
+     visible brand accent — Fluent's dark cards lift off the background. */
+  --color-bg: #141312; --color-surface: #242322; --color-border: #3B3A39;
   --color-stroke-strong: #ADADAD; --color-stroke: #666666;
-  --color-text-primary: #F3F2F1; --color-text-secondary: #A19F9D;
-  --nav-bg: #292827;
-  --card-border: 1px solid #3B3A39; --card-hover-border: 1px solid #4D4D4D;
-  --card-hover-bg: #383838; --card-active-bg: #2E2E2E;
+  --color-text-primary: #F3F2F1; --color-text-secondary: #B3B0AD;
+  --nav-bg: #242322;
+  --card-border: 1px solid #3B3A39; --card-hover-border: 1px solid #479EF5;
+  --card-hover-bg: #2F2E2C; --card-active-bg: #38352F;
+  --card-shadow: 0 0 2px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.45);
+  --card-hover-shadow: 0 0 2px rgba(0,0,0,0.5), 0 6px 14px rgba(0,0,0,0.55);
   --focus-ring: 2px solid #FFFFFF;
   --nav-active-color: #F3F2F1;
-  --status-ga-bg: rgba(159,216,159,.12);  --status-ga-text: #9FD89F;  --status-ga-border: rgba(159,216,159,.4);
-  --status-preview-bg: rgba(119,183,247,.12); --status-preview-text: #77B7F7; --status-preview-border: rgba(119,183,247,.4);
-  --status-beta-bg: rgba(167,156,240,.12); --status-beta-text: #A79CF0; --status-beta-border: rgba(167,156,240,.4);
-  --status-retired-bg: rgba(238,172,178,.12); --status-retired-text: #EEACB2; --status-retired-border: rgba(238,172,178,.4);
-  --status-fallback-bg: rgba(244,191,171,.12); --status-fallback-text: #F4BFAB; --status-fallback-border: rgba(244,191,171,.4);
+  --status-ga-bg: rgba(159,216,159,.18);  --status-ga-text: #B0E0B0;  --status-ga-border: rgba(159,216,159,.55);
+  --status-preview-bg: rgba(119,183,247,.18); --status-preview-text: #8FC4F8; --status-preview-border: rgba(119,183,247,.55);
+  --status-beta-bg: rgba(167,156,240,.18); --status-beta-text: #B8AFF4; --status-beta-border: rgba(167,156,240,.55);
+  --status-retired-bg: rgba(238,172,178,.18); --status-retired-text: #F2BEC3; --status-retired-border: rgba(238,172,178,.55);
+  --status-fallback-bg: rgba(244,191,171,.18); --status-fallback-text: #F6CDBB; --status-fallback-border: rgba(244,191,171,.55);
+}
+
+/* ============================================
+   Oracle Cloud (OCI) — Redwood
+   Oracle's Redwood brand: warm brownish-red brand accent (#C74634),
+   warm neutral surfaces, Oracle Sans → Inter fallback. Medium 6px corners,
+   soft shadow. NOTE: the brand
+   red is deliberately NOT reused for the "retired" status (which uses a clearly
+   distinct crimson #B10E1C) so a brand chip is never read as an error, and the
+   warm brown-red reads differently from AWS's amber accent.
+   ============================================ */
+[data-vendor="oci"] {
+  --color-primary: #C74634; --color-accent: #3A3632;
+  --color-bg: #FBF9F8; --color-surface: #FFFFFF; --color-border: #E4DEDA;
+  --color-text-primary: #201A17; --color-text-secondary: #6B625C;
+  --font-family: 'Oracle Sans', 'Inter', -apple-system, 'Helvetica Neue', 'Segoe UI', Roboto, 'Pretendard Variable', sans-serif;
+  --font-weight-title: 600;
+  --radius: 6px; --card-radius: 6px; --chip-radius: 6px; --input-radius: 6px; --badge-radius: 4px; --btn-radius: 6px;
+  --nav-bg: #3A3632; --nav-height: 56px;
+  --card-shadow: 0 1px 2px rgba(32,26,23,0.06); --card-hover-shadow: 0 3px 10px rgba(32,26,23,0.12);
+  --card-border: 1px solid #E4DEDA;
+  --card-hover-border: 1px solid #C74634;
+  --card-hover-bg: #FDF4F2; --card-active-bg: #FAE9E5;
+  --focus-ring: 2px solid #C74634; --focus-offset: 2px;
+  --nav-active-bg: #C74634; --nav-active-color: #FFFFFF;
+
+  --status-ga-bg: #F1FAF2;       --status-ga-text: #1C7A3E;       --status-ga-border: #A7D7B5;
+  --status-preview-bg: #EEF4FB;  --status-preview-text: #2A5B8C;  --status-preview-border: #B6CCE4;
+  --status-beta-bg: #F5EFFA;     --status-beta-text: #6B3FA0;     --status-beta-border: #D2BEE8;
+  --status-retired-bg: #FDF2F2;  --status-retired-text: #B10E1C;  --status-retired-border: #EBB3B6;
+  --status-fallback-bg: #F7F3F0; --status-fallback-text: #6B625C; --status-fallback-border: #D8CEC7;
+}
+[data-vendor="oci"][data-theme="dark"] {
+  --color-primary: #FF8468; --color-accent: #F5C9B8;
+  /* Redwood dark: warm espresso neutrals (not grey) with an elevated card
+     layer and the redwood accent used assertively on hover + nav. */
+  --color-bg: #15100D; --color-surface: #241B16; --color-border: #43362D;
+  --color-text-primary: #F7EFE9; --color-text-secondary: #C9BBB0;
+  --nav-bg: #241B16;
+  --card-border: 1px solid #43362D; --card-hover-border: 1px solid #FF8468;
+  --card-hover-bg: #30241D; --card-active-bg: #3D2D24;
+  --card-shadow: 0 1px 3px rgba(0,0,0,0.5); --card-hover-shadow: 0 6px 18px rgba(0,0,0,0.6);
+  --focus-ring: 2px solid #FF8468;
+  --nav-active-bg: #FF8468; --nav-active-color: #15100D;
+  --status-ga-bg: rgba(129,201,149,.18);  --status-ga-text: #9AD6AB;  --status-ga-border: rgba(129,201,149,.55);
+  --status-preview-bg: rgba(122,170,224,.18); --status-preview-text: #9EC2F0; --status-preview-border: rgba(122,170,224,.55);
+  --status-beta-bg: rgba(197,138,249,.18); --status-beta-text: #D4A3FA; --status-beta-border: rgba(197,138,249,.55);
+  --status-retired-bg: rgba(240,130,130,.18); --status-retired-text: #F8A3A3; --status-retired-border: rgba(240,130,130,.55);
+  --status-fallback-bg: rgba(201,187,176,.18); --status-fallback-text: #C9BBB0; --status-fallback-border: rgba(201,187,176,.55);
 }
 
 body {

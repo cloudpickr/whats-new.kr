@@ -15,13 +15,13 @@ interface Props {
 
 const {
   title,
-  description = 'Amazon Web Services, Google Cloud, Microsoft Azure 클라우드 최신 업데이트를 한국어로 요약합니다.',
+  description = 'Amazon Web Services, Google Cloud, Microsoft Azure, Oracle Cloud 클라우드 최신 업데이트를 한국어로 요약합니다.',
   vendor = 'home',
   ogImage = '/og.png',
   ogImageAlt = 'What\'s New 한국어 요약 공유 이미지',
   structuredData = [],
 } = Astro.props;
-const cspNames: Record<string, string> = { home: 'Cloud What\'s New', aws: 'AWS', gcp: 'GCP', azure: 'Azure' };
+const cspNames: Record<string, string> = { home: 'Cloud What\'s New', aws: 'AWS', gcp: 'GCP', azure: 'Azure', oci: 'OCI' };
 const siteName = 'What\'s New 한국어 요약';
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
 const ogImageUrl = new URL(ogImage, Astro.site).toString();
@@ -44,16 +44,16 @@ const fontPreload: Record<string, string> = {
       /* Critical above-the-fold: paint header+body immediately */
       :root {
         --nav-height: ${vendor === 'azure' ? '48px' : vendor === 'gcp' ? '64px' : '56px'};
-        --color-bg: ${vendor === 'aws' ? '#F2F3F3' : vendor === 'gcp' ? '#F8F9FA' : vendor === 'azure' ? '#FAF9F8' : '#F9FAFB'};
-        --color-text-primary: ${vendor === 'aws' ? '#000716' : vendor === 'gcp' ? '#202124' : vendor === 'azure' ? '#242424' : '#101828'};
-        --nav-bg: ${vendor === 'aws' || vendor === 'home' ? '#232F3E' : vendor === 'gcp' ? '#FFFFFF' : '#FFFFFF'};
-        --color-border: ${vendor === 'aws' ? '#D5DBDB' : vendor === 'gcp' ? 'transparent' : vendor === 'azure' ? '#EDEBE9' : '#E4E7EC'};
+        --color-bg: ${vendor === 'aws' ? '#F2F3F3' : vendor === 'gcp' ? '#F8F9FA' : vendor === 'azure' ? '#FAF9F8' : vendor === 'oci' ? '#FBF9F8' : '#F9FAFB'};
+        --color-text-primary: ${vendor === 'aws' ? '#000716' : vendor === 'gcp' ? '#202124' : vendor === 'azure' ? '#242424' : vendor === 'oci' ? '#201A17' : '#101828'};
+        --nav-bg: ${vendor === 'aws' || vendor === 'home' ? '#232F3E' : vendor === 'oci' ? '#3A3632' : vendor === 'gcp' ? '#FFFFFF' : '#FFFFFF'};
+        --color-border: ${vendor === 'aws' ? '#D5DBDB' : vendor === 'gcp' ? 'transparent' : vendor === 'azure' ? '#EDEBE9' : vendor === 'oci' ? '#E4DEDA' : '#E4E7EC'};
       }
       [data-theme="dark"] {
-        --color-bg: ${vendor === 'aws' ? '#16191f' : vendor === 'gcp' ? '#202124' : vendor === 'azure' ? '#1B1A19' : '#0F1117'};
-        --color-text-primary: ${vendor === 'aws' ? '#eaeded' : vendor === 'gcp' ? '#E8EAED' : vendor === 'azure' ? '#F3F2F1' : '#F4F4F6'};
-        --nav-bg: ${vendor === 'aws' ? '#16191f' : vendor === 'gcp' ? '#292A2D' : vendor === 'azure' ? '#292827' : '#0F1117'};
-        --color-border: ${vendor === 'aws' ? '#303846' : vendor === 'gcp' ? 'transparent' : vendor === 'azure' ? '#3B3A39' : '#2D3148'};
+        --color-bg: ${vendor === 'aws' ? '#16191f' : vendor === 'gcp' ? '#202124' : vendor === 'azure' ? '#1B1A19' : vendor === 'oci' ? '#1A1613' : '#0F1117'};
+        --color-text-primary: ${vendor === 'aws' ? '#eaeded' : vendor === 'gcp' ? '#E8EAED' : vendor === 'azure' ? '#F3F2F1' : vendor === 'oci' ? '#F2EBE6' : '#F4F4F6'};
+        --nav-bg: ${vendor === 'aws' ? '#16191f' : vendor === 'gcp' ? '#292A2D' : vendor === 'azure' ? '#292827' : vendor === 'oci' ? '#1A1613' : '#0F1117'};
+        --color-border: ${vendor === 'aws' ? '#303846' : vendor === 'gcp' ? 'transparent' : vendor === 'azure' ? '#3B3A39' : vendor === 'oci' ? '#3A322C' : '#2D3148'};
       }
       body { background-color: var(--color-bg); color: var(--color-text-primary); margin: 0; }
       body.no-transition { transition: none !important; }
@@ -83,7 +83,7 @@ const fontPreload: Record<string, string> = {
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="theme-color" content={vendor === 'aws' ? '#232F3E' : vendor === 'gcp' ? '#1A73E8' : vendor === 'azure' ? '#0078D4' : '#0F172A'} />
+    <meta name="theme-color" content={vendor === 'aws' ? '#232F3E' : vendor === 'gcp' ? '#1A73E8' : vendor === 'azure' ? '#0078D4' : vendor === 'oci' ? '#C74634' : '#0F172A'} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:site_name" content={siteName} />
@@ -171,11 +171,11 @@ const fontPreload: Record<string, string> = {
   <body class="no-transition">
     <header>
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex justify-between items-center">
-        <a href="/" class="text-base sm:text-lg font-bold" style="color: var(--nav-brand-color);">
+        <a href="/" class="text-base sm:text-lg font-bold whitespace-nowrap shrink-0" style="color: var(--nav-brand-color);">
           ☁️ What's New <span class="hidden sm:inline">한국어 요약</span> <span class="text-[10px] sm:text-xs font-normal opacity-50"><span class="sm:hidden">β</span><span class="hidden sm:inline">Beta</span></span>
         </a>
-        <nav class="flex items-center h-full gap-0.5 sm:gap-1.5">
-          {(['aws', 'gcp', 'azure'] as const).map(c => (
+        <nav class="flex items-center h-full gap-0.5 sm:gap-1.5 min-w-0">
+          {(['aws', 'gcp', 'azure', 'oci'] as const).map(c => (
             <a href={`/${c}`} class={`nav-item${vendor === c ? ' is-active' : ''}`} aria-current={vendor === c ? 'page' : undefined}>
               {cspNames[c]}
             </a>
@@ -192,7 +192,7 @@ const fontPreload: Record<string, string> = {
     </main>
     <footer style="background-color: var(--color-surface); border-top: 1px solid var(--color-border);" class="mt-8">
       <div class="max-w-7xl mx-auto py-4 px-4 text-center text-xs" style="color: var(--color-text-secondary);">
-        © {new Date().getFullYear()} Cloud ☁️ What's New <span class="hidden sm:inline">한국어 요약</span> <span class="text-[10px] sm:text-xs font-normal opacity-50"><span class="sm:hidden">β</span><span class="hidden sm:inline">Beta</span></span>. Not affiliated with Amazon Web Services, Google Cloud, or Microsoft Azure.
+        © {new Date().getFullYear()} Cloud ☁️ What's New <span class="hidden sm:inline">한국어 요약</span> <span class="text-[10px] sm:text-xs font-normal opacity-50"><span class="sm:hidden">β</span><span class="hidden sm:inline">Beta</span></span>. Not affiliated with Amazon Web Services, Google Cloud, Microsoft Azure, or Oracle Cloud. All trademarks are the property of their respective owners.
       </div>
     </footer>
     <script>

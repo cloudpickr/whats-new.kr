@@ -1,0 +1,36 @@
+/* Oracle Sans — OCI brand face, self-hosted woff2.
+ * NOTE: Oracle Sans is a proprietary typeface. It is shipped here at the site
+ * owner's explicit decision, who accepts the licensing responsibility. Inter
+ * (SIL OFL, see inter.css) remains the next fallback in the stack if these
+ * files fail to load. */
+@font-face {
+  font-family: 'Oracle Sans';
+  src: url('/fonts/oracle-sans-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Oracle Sans';
+  src: url('/fonts/oracle-sans-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Oracle Sans';
+  src: url('/fonts/oracle-sans-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Oracle Sans';
+  src: url('/fonts/oracle-sans-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}

@@ -70,14 +70,16 @@ const fontPreload: Record<string, string> = {
          jsDelivr — preconnect so its CSS + woff2 subset start without paying DNS
          + TLS on the critical path. -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    {fontPreload[vendor] && <link rel="preload" as="font" type="font/woff2" href={fontPreload[vendor]} crossorigin />}
-    <!-- Google Sans (GCP brand face) — only loaded on GCP pages. Normal
-         stylesheet (not the media="print" swap trick, which left Google Sans
-         inconsistently applied): font-display:swap already keeps text paint
-         non-blocking, and the preconnect above covers DNS/TLS. -->
-    {(vendor === 'gcp' || vendor === 'home') && (
-      <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
-    )}
+    {fontPreload[vendor] && <link rel="preload" as="font" type="font/woff2" href={fontPreload[vendor]} crossorigin transition:persist transition:name={`font-preload-${vendor}`} />}
+    <!-- Google Sans (GCP + home brand face). Loaded as a normal stylesheet on
+         every page and marked transition:persist so Astro's View Transitions
+         keep it across client-side navigations. Previously it was conditional
+         per-vendor, so navigating (e.g. home -> azure -> gcp) left the head
+         font links mismatched and the brand font only appeared after a full
+         refresh. Keeping Google Sans always-present + persisted makes the head
+         uniform; font-display:swap keeps paint non-blocking and @font-face
+         woff2 is only fetched when a glyph actually needs it. -->
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet" transition:persist transition:name="google-sans-css" />
     <!-- Pretendard: single Korean face for every vendor stack. Loaded async
          (preload-as-style + onload swap) so it is NOT render-blocking; the
          jsDelivr preconnect above pays DNS+TLS up front so the subset CSS +

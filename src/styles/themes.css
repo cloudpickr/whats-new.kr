@@ -5,11 +5,10 @@
  * (Google Sans is loaded via <link> in Layout.astro — a CSS @import would
  *  create a render-blocking request chain.)
  * (Oracle Sans is a self-hosted proprietary OCI brand face, shipped at the
- *  owner's explicit decision; Inter (SIL OFL) is its load-failure fallback.) */
+ *  owner's explicit decision; system sans fallbacks follow if it fails.) */
 @import "./segoe-ui.css";
 @import "./amazon-ember.css";
 @import "./oracle-sans.css";
-@import "./inter.css";
 
 /* ============================================================
    Token contract (every [data-vendor] must define all of these)
@@ -225,7 +224,7 @@
 /* ============================================
    Oracle Cloud (OCI) — Redwood
    Oracle's Redwood brand: warm brownish-red brand accent (#C74634),
-   warm neutral surfaces, Oracle Sans → Inter fallback. Medium 6px corners,
+   warm neutral surfaces, Oracle Sans → system sans fallback. Medium 6px corners,
    soft shadow. NOTE: the brand
    red is deliberately NOT reused for the "retired" status (which uses a clearly
    distinct crimson #B10E1C) so a brand chip is never read as an error, and the
@@ -235,7 +234,7 @@
   --color-primary: #C74634; --color-accent: #3A3632;
   --color-bg: #FBF9F8; --color-surface: #FFFFFF; --color-border: #E4DEDA;
   --color-text-primary: #201A17; --color-text-secondary: #6B625C;
-  --font-family: 'Oracle Sans', 'Inter', -apple-system, 'Helvetica Neue', 'Segoe UI', Roboto, 'Pretendard Variable', sans-serif;
+  --font-family: 'Oracle Sans', -apple-system, 'Helvetica Neue', 'Segoe UI', Roboto, 'Pretendard Variable', sans-serif;
   --font-weight-title: 600;
   --radius: 6px; --card-radius: 6px; --chip-radius: 6px; --input-radius: 6px; --badge-radius: 4px; --btn-radius: 6px;
   --nav-bg: #3A3632; --nav-height: 56px;

@@ -1,8 +1,7 @@
 /* Oracle Sans — OCI brand face, self-hosted woff2.
  * NOTE: Oracle Sans is a proprietary typeface. It is shipped here at the site
- * owner's explicit decision, who accepts the licensing responsibility. Inter
- * (SIL OFL, see inter.css) remains the next fallback in the stack if these
- * files fail to load. */
+ * owner's explicit decision, who accepts the licensing responsibility.
+ * System sans (-apple-system, etc.) is the fallback if these files fail. */
 @font-face {
   font-family: 'Oracle Sans';
   src: url('/fonts/oracle-sans-400.woff2') format('woff2');

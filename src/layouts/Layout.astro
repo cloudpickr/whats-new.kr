@@ -49,6 +49,7 @@ const fontPreload: Record<string, string> = {
         --color-text-primary: ${vendor === 'aws' ? '#000716' : vendor === 'gcp' ? '#202124' : vendor === 'azure' ? '#242424' : vendor === 'oci' ? '#201A17' : '#101828'};
         --nav-bg: ${vendor === 'aws' || vendor === 'home' ? '#232F3E' : vendor === 'oci' ? '#3A3632' : vendor === 'gcp' ? '#FFFFFF' : '#FFFFFF'};
         --color-border: ${vendor === 'aws' ? '#D5DBDB' : vendor === 'gcp' ? 'transparent' : vendor === 'azure' ? '#EDEBE9' : vendor === 'oci' ? '#E4DEDA' : '#E4E7EC'};
+        --font-family: ${vendor === 'aws' ? "'Amazon Ember', -apple-system, 'Apple SD Gothic Neo', 'Pretendard Variable', sans-serif" : vendor === 'gcp' ? "'Google Sans', Roboto, -apple-system, 'Apple SD Gothic Neo', 'Pretendard Variable', sans-serif" : vendor === 'azure' ? "'Segoe UI Web', 'Segoe UI', -apple-system, 'Apple SD Gothic Neo', 'Pretendard Variable', sans-serif" : vendor === 'oci' ? "'Oracle Sans', -apple-system, 'Apple SD Gothic Neo', 'Helvetica Neue', 'Segoe UI', Roboto, 'Pretendard Variable', sans-serif" : "'Pretendard Variable', -apple-system, 'Apple SD Gothic Neo', system-ui, sans-serif"};
       }
       [data-theme="dark"] {
         --color-bg: ${vendor === 'aws' ? '#0F1B2A' : vendor === 'gcp' ? '#1A1C1E' : vendor === 'azure' ? '#141312' : vendor === 'oci' ? '#15100D' : '#0C0E14'};
@@ -56,9 +57,7 @@ const fontPreload: Record<string, string> = {
         --nav-bg: ${vendor === 'aws' ? '#0D1521' : vendor === 'gcp' ? '#22262B' : vendor === 'azure' ? '#242322' : vendor === 'oci' ? '#241B16' : '#0C0E14'};
         --color-border: ${vendor === 'aws' ? '#2E3C50' : vendor === 'gcp' ? 'transparent' : vendor === 'azure' ? '#3B3A39' : vendor === 'oci' ? '#43362D' : '#2A2E42'};
       }
-      body { background-color: var(--color-bg); color: var(--color-text-primary); margin: 0; font-family: ${
-        vendor === 'aws' ? "'Amazon Ember', " : vendor === 'oci' ? "'Oracle Sans', " : ''
-      }'Pretendard Variable', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Segoe UI', system-ui, sans-serif; }
+      body { background-color: var(--color-bg); color: var(--color-text-primary); margin: 0; font-family: var(--font-family); }
       body.no-transition { transition: none !important; }
       header { position: sticky; top: 0; z-index: 50; height: var(--nav-height); min-height: var(--nav-height); background-color: var(--nav-bg); border-bottom: 1px solid var(--color-border); }
     `} />
@@ -256,6 +255,36 @@ const fontPreload: Record<string, string> = {
       }
 
       document.addEventListener('astro:page-load', initThemeToggle);
+    </script>
+    <script is:inline>
+      // Brand fonts under View Transitions: after a client-side navigation,
+      // Astro ClientRouter swaps the DOM and painted text can keep the fallback
+      // face even once the brand @font-face is available (especially external
+      // CDN faces like Google Sans / Segoe UI Web). Explicitly kicking off
+      // document.fonts.load() for the current vendor's brand family on every
+      // page-load forces the browser to resolve + apply it to the new document.
+      (function () {
+        var BRAND = {
+          aws: 'Amazon Ember',
+          gcp: 'Google Sans',
+          azure: 'Segoe UI Web',
+          oci: 'Oracle Sans',
+        };
+        function loadBrandFont() {
+          if (!document.fonts || !document.fonts.load) return;
+          var v = document.documentElement.getAttribute('data-vendor');
+          var fam = BRAND[v];
+          if (!fam) return;
+          // Load the weights actually used (400 body, 600/700 titles) so the
+          // browser resolves the brand @font-face and applies it to the newly
+          // swapped document.
+          ['400', '600', '700'].forEach(function (w) {
+            try { document.fonts.load(w + " 1em '" + fam + "'"); } catch (e) {}
+          });
+        }
+        document.addEventListener('astro:page-load', loadBrandFont);
+        loadBrandFont();
+      })();
     </script>
     <script is:inline>
       // Enable transitions after first paint (double-rAF ensures paint is complete)

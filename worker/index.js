@@ -10,15 +10,16 @@ const RSS_FEEDS = {
   gcp: 'https://docs.cloud.google.com/feeds/gcp-release-notes.xml',
   azure: 'https://www.microsoft.com/releasecommunications/api/v2/azure/rss',
   openai: 'https://openai.com/news/rss.xml',
-  oracle: 'https://docs.oracle.com/en-us/iaas/releasenotes/feed',
+  oci: 'https://docs.oracle.com/en-us/iaas/releasenotes/feed',
   ibm: 'https://cloud.ibm.com/status/api/notifications/feed.rss',
 };
 
 // Ingestion-only vendors: raw text lands in `articles` (queryable via MCP
 // format="source") but never gets a ko/en/ja translation job or a website
 // page — no summary pipeline cost until/unless a page is actually built.
-// oracle (OCI) was promoted to a full CSP: it now gets ko/en/ja translation and
-// a /oracle page like aws/gcp/azure, so it is no longer source-only.
+// oci (Oracle Cloud) was promoted to a full CSP: it now gets ko/en/ja
+// translation and a /oci page like aws/gcp/azure, so it is no longer
+// source-only.
 const SOURCE_ONLY_CSPS = new Set(['openai', 'ibm']);
 
 // These vendors never get a ko row by design, so backlog/missing-translation
@@ -2149,23 +2150,23 @@ export default {
 
       if (rpc.method === 'tools/list') {
         return respond(rpc.id, { tools: [
-          { name: 'search_releases', description: 'Search cloud release notes by keyword, CSP, or date range. aws/gcp/azure have Korean (ko) and English (en) AI summaries; oracle/openai/ibm are vendor-original English only, reachable with format="source".', inputSchema: {
+          { name: 'search_releases', description: 'Search cloud release notes by keyword, CSP, or date range. aws/gcp/azure/oci have Korean (ko) and English (en) AI summaries; openai/ibm are vendor-original English only, reachable with format="source".', inputSchema: {
             type: 'object', properties: {
               query: { type: 'string', description: 'Search keyword — matches title and summary' },
-              csp: { type: 'string', enum: ['aws', 'gcp', 'azure', 'oracle', 'openai', 'ibm'], description: 'Cloud provider filter (lowercase). aws/gcp/azure support ko/en summaries and format="source"; oracle/openai/ibm are source-only (format="source", vendor-original English, no translation).' },
+              csp: { type: 'string', enum: ['aws', 'gcp', 'azure', 'oci', 'openai', 'ibm'], description: 'Cloud provider filter (lowercase). aws/gcp/azure/oci support ko/en summaries and format="source"; openai/ibm are source-only (format="source", vendor-original English, no translation).' },
               lang: { type: 'string', enum: ['ko', 'en'], description: 'Output language for format="summary": ko (default) or en, when available. Ignored for format="source" (always vendor-original English).' },
-              format: { type: 'string', enum: ['summary', 'source'], description: 'summary (default): localized AI summary (aws/gcp/azure only). source: vendor-original English text from ingestion (all CSPs incl. oracle/openai/ibm); requires Authorization: Bearer <mcp token>.' },
+              format: { type: 'string', enum: ['summary', 'source'], description: 'summary (default): localized AI summary (aws/gcp/azure/oci). source: vendor-original English text from ingestion (all CSPs incl. openai/ibm); requires Authorization: Bearer <mcp token>.' },
               days: { type: 'number', description: 'Look back N days from now (default 30). Ignored if start_date is set.' },
               start_date: { type: 'string', description: 'Start date (YYYY-MM-DD). Use with end_date for exact range.' },
               end_date: { type: 'string', description: 'End date (YYYY-MM-DD). Used with start_date.' },
               limit: { type: 'number', description: 'Max results (default: 50, or 10/day for date ranges, max 100)' },
             },
           }},
-          { name: 'get_release', description: 'Get a specific release note by article ID. format="source" returns vendor-original English for any CSP (incl. oracle/openai/ibm); format="summary" returns a localized AI summary (aws/gcp/azure only).', inputSchema: {
+          { name: 'get_release', description: 'Get a specific release note by article ID. format="source" returns vendor-original English for any CSP (incl. openai/ibm); format="summary" returns a localized AI summary (aws/gcp/azure/oci).', inputSchema: {
             type: 'object', properties: {
               id: { type: 'number', description: 'Article ID' },
               lang: { type: 'string', description: 'Language for format="summary" (default "ko"). Ignored for format="source".' },
-              format: { type: 'string', enum: ['summary', 'source'], description: 'summary (default): localized AI summary (aws/gcp/azure only). source: vendor-original English text (all CSPs incl. oracle/openai/ibm); requires Authorization: Bearer <mcp token>.' },
+              format: { type: 'string', enum: ['summary', 'source'], description: 'summary (default): localized AI summary (aws/gcp/azure/oci). source: vendor-original English text (all CSPs incl. openai/ibm); requires Authorization: Bearer <mcp token>.' },
             }, required: ['id'],
           }},
           { name: 'get_stats', description: 'Get current translation/review pipeline status.', inputSchema: { type: 'object', properties: {} }},

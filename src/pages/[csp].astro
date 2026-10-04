@@ -4,7 +4,7 @@ import UpdateCard from '../components/UpdateCard.astro';
 import { callBackend } from '../lib/apiClient';
 
 const { csp } = Astro.params;
-const valid = ['aws', 'gcp', 'azure', 'oracle'];
+const valid = ['aws', 'gcp', 'azure', 'oci'];
 if (!csp || !valid.includes(csp)) return Astro.redirect('/');
 
 // Edge-cache the rendered HTML at Cloudflare. Content refreshes on a 1-min cron,
@@ -26,9 +26,9 @@ const rssLinks: Record<string, { name: string; url: string }> = {
   aws: { name: 'AWS What\'s New', url: 'https://aws.amazon.com/new/' },
   gcp: { name: 'Google Cloud Release Notes', url: 'https://cloud.google.com/release-notes' },
   azure: { name: 'Azure Updates', url: 'https://azure.microsoft.com/en-us/updates/' },
-  oracle: { name: 'OCI Release Notes', url: 'https://docs.oracle.com/en-us/iaas/releasenotes/' },
+  oci: { name: 'OCI Release Notes', url: 'https://docs.oracle.com/en-us/iaas/releasenotes/' },
 };
-const names: Record<string, string> = { aws: 'Amazon Web Services', gcp: 'Google Cloud', azure: 'Microsoft Azure', oracle: 'Oracle Cloud Infrastructure' };
+const names: Record<string, string> = { aws: 'Amazon Web Services', gcp: 'Google Cloud', azure: 'Microsoft Azure', oci: 'Oracle Cloud Infrastructure' };
 const rss = rssLinks[csp];
 const latest = articles[0]?.pub_date ? new Date(articles[0].pub_date).toLocaleString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
 
@@ -114,7 +114,7 @@ const structuredData = [
     <div class="page-head__text">
       <h1 class="page-head__title">
         <span class="page-head__dot" aria-hidden="true"></span>
-        {names[csp]} 업데이트<span class="page-head__counter">({articles.length})</span>
+        <span class="page-head__title-text">{names[csp]} 업데이트<span class="page-head__counter">({articles.length})</span></span>
       </h1>
       <p class="page-head__desc">
         {names[csp]} <a href={rss.url} target="_blank" rel="noopener noreferrer" class="underline font-semibold hover:opacity-80" style="color: var(--color-primary);">공식 RSS 피드</a>를 실시간 기계번역 및 품질 필터링을 통해 전달합니다.

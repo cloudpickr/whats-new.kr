@@ -100,7 +100,7 @@ describe('worker auth fails closed', { concurrency: 1 }, () => {
       });
       assert.equal(result.response.status, 400);
       assert.equal(result.json.error, 'invalid action');
-      assert.ok(logs.some((line) => line.includes('keyId=service-test') && line.includes('keyType=service')));
+      assert.ok(logs.some((line) => line.includes('keyIdFp=') && line.includes('keyType=service')));
       assert.equal(logs.some((line) => line.includes('trusted-ip-bypass')), false);
     } finally {
       console.log = originalLog;

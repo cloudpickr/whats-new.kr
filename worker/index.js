@@ -727,14 +727,14 @@ function parseRSS(xml, csp) {
         const endH2 = sections[i].indexOf('</h2>');
         if (endH2 < 0) continue;
         const productName = decodeEntities(stripTags(sections[i].slice(0, endH2)).trim());
-        const body = stripTags(sections[i].slice(endH2 + 5)).replace(/\s+/g, ' ').trim().slice(0, 1500);
+        const body = stripTags(sections[i].slice(endH2 + 5)).replace(/\s+/g, ' ').trim();
         items.push({ csp, title: productName, description: body, url, pub_date: pubDate });
       }
     } else {
       items.push({
         csp,
         title: rawTitle,
-        description: stripTags(rawContent).replace(/\s+/g, ' ').trim().slice(0, 2000),
+        description: stripTags(rawContent).replace(/\s+/g, ' ').trim(),
         url,
         pub_date: pubDate,
       });
@@ -1745,6 +1745,8 @@ async function enqueueFluentKoreanRefresh(env, limit = FLUENT_REFRESH_BATCH_SIZE
   ));
   return enqueueTranslationJobs(env, jobs, { skipClaim: true });
 }
+
+export { parseRSS };
 
 export default {
   async scheduled(event, env, ctx) {

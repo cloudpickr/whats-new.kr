@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { callBackend } from '../lib/apiClient';
 
-const csps = ['aws', 'gcp', 'azure'] as const;
+const csps = ['aws', 'gcp', 'azure', 'oracle'] as const;
 
 function xmlEscape(value: string) {
   return value

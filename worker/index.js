@@ -17,7 +17,9 @@ const RSS_FEEDS = {
 // Ingestion-only vendors: raw text lands in `articles` (queryable via MCP
 // format="source") but never gets a ko/en/ja translation job or a website
 // page — no summary pipeline cost until/unless a page is actually built.
-const SOURCE_ONLY_CSPS = new Set(['openai', 'oracle', 'ibm']);
+// oracle (OCI) was promoted to a full CSP: it now gets ko/en/ja translation and
+// a /oracle page like aws/gcp/azure, so it is no longer source-only.
+const SOURCE_ONLY_CSPS = new Set(['openai', 'ibm']);
 
 // These vendors never get a ko row by design, so backlog/missing-translation
 // counts must exclude them or they'd inflate forever and misreport the real

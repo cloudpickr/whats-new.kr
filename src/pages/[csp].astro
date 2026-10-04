@@ -4,7 +4,7 @@ import UpdateCard from '../components/UpdateCard.astro';
 import { callBackend } from '../lib/apiClient';
 
 const { csp } = Astro.params;
-const valid = ['aws', 'gcp', 'azure'];
+const valid = ['aws', 'gcp', 'azure', 'oracle'];
 if (!csp || !valid.includes(csp)) return Astro.redirect('/');
 
 // Edge-cache the rendered HTML at Cloudflare. Content refreshes on a 1-min cron,
@@ -26,8 +26,9 @@ const rssLinks: Record<string, { name: string; url: string }> = {
   aws: { name: 'AWS What\'s New', url: 'https://aws.amazon.com/new/' },
   gcp: { name: 'Google Cloud Release Notes', url: 'https://cloud.google.com/release-notes' },
   azure: { name: 'Azure Updates', url: 'https://azure.microsoft.com/en-us/updates/' },
+  oracle: { name: 'OCI Release Notes', url: 'https://docs.oracle.com/en-us/iaas/releasenotes/' },
 };
-const names: Record<string, string> = { aws: 'Amazon Web Services', gcp: 'Google Cloud', azure: 'Microsoft Azure' };
+const names: Record<string, string> = { aws: 'Amazon Web Services', gcp: 'Google Cloud', azure: 'Microsoft Azure', oracle: 'Oracle Cloud Infrastructure' };
 const rss = rssLinks[csp];
 const latest = articles[0]?.pub_date ? new Date(articles[0].pub_date).toLocaleString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
 

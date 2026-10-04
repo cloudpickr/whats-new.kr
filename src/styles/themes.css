@@ -206,6 +206,52 @@
   --status-fallback-bg: rgba(244,191,171,.12); --status-fallback-text: #F4BFAB; --status-fallback-border: rgba(244,191,171,.4);
 }
 
+/* ============================================
+   Oracle (OCI) — Redwood
+   Oracle's Redwood brand: warm brownish-red brand accent (#C74634),
+   warm neutral surfaces, Oracle Sans → system fallback (Oracle Sans is not
+   publicly redistributable). Medium 6px corners, soft shadow. NOTE: the brand
+   red is deliberately NOT reused for the "retired" status (which uses a clearly
+   distinct crimson #B10E1C) so a brand chip is never read as an error, and the
+   warm brown-red reads differently from AWS's amber accent.
+   ============================================ */
+[data-vendor="oracle"] {
+  --color-primary: #C74634; --color-accent: #3A3632;
+  --color-bg: #FBF9F8; --color-surface: #FFFFFF; --color-border: #E4DEDA;
+  --color-text-primary: #201A17; --color-text-secondary: #6B625C;
+  --font-family: 'Oracle Sans', 'Pretendard Variable', -apple-system, 'Helvetica Neue', sans-serif;
+  --font-weight-title: 600;
+  --radius: 6px; --card-radius: 6px; --chip-radius: 6px; --input-radius: 6px; --badge-radius: 4px; --btn-radius: 6px;
+  --nav-bg: #3A3632; --nav-height: 56px;
+  --card-shadow: 0 1px 2px rgba(32,26,23,0.06); --card-hover-shadow: 0 3px 10px rgba(32,26,23,0.12);
+  --card-border: 1px solid #E4DEDA;
+  --card-hover-border: 1px solid #C74634;
+  --card-hover-bg: #FDF4F2; --card-active-bg: #FAE9E5;
+  --focus-ring: 2px solid #C74634; --focus-offset: 2px;
+  --nav-active-bg: #C74634; --nav-active-color: #FFFFFF;
+
+  --status-ga-bg: #F1FAF2;       --status-ga-text: #1C7A3E;       --status-ga-border: #A7D7B5;
+  --status-preview-bg: #EEF4FB;  --status-preview-text: #2A5B8C;  --status-preview-border: #B6CCE4;
+  --status-beta-bg: #F5EFFA;     --status-beta-text: #6B3FA0;     --status-beta-border: #D2BEE8;
+  --status-retired-bg: #FDF2F2;  --status-retired-text: #B10E1C;  --status-retired-border: #EBB3B6;
+  --status-fallback-bg: #F7F3F0; --status-fallback-text: #6B625C; --status-fallback-border: #D8CEC7;
+}
+[data-vendor="oracle"][data-theme="dark"] {
+  --color-primary: #F06A54; --color-accent: #E8DED8;
+  --color-bg: #1A1613; --color-surface: #262019; --color-border: #3A322C;
+  --color-text-primary: #F2EBE6; --color-text-secondary: #B5ABA3;
+  --nav-bg: #1A1613;
+  --card-border: 1px solid #3A322C; --card-hover-border: 1px solid #F06A54;
+  --card-hover-bg: #2E251F; --card-active-bg: #3A2A23;
+  --focus-ring: 2px solid #F06A54;
+  --nav-active-bg: #F06A54; --nav-active-color: #1A1613;
+  --status-ga-bg: rgba(129,201,149,.12);  --status-ga-text: #81C995;  --status-ga-border: rgba(129,201,149,.4);
+  --status-preview-bg: rgba(122,170,224,.12); --status-preview-text: #7AAAE0; --status-preview-border: rgba(122,170,224,.4);
+  --status-beta-bg: rgba(197,138,249,.12); --status-beta-text: #C58AF9; --status-beta-border: rgba(197,138,249,.4);
+  --status-retired-bg: rgba(240,130,130,.12); --status-retired-text: #F08282; --status-retired-border: rgba(240,130,130,.4);
+  --status-fallback-bg: rgba(181,171,163,.12); --status-fallback-text: #B5ABA3; --status-fallback-border: rgba(181,171,163,.4);
+}
+
 body {
   background-color: var(--color-bg);
   color: var(--color-text-primary);

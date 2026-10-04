@@ -258,5 +258,5 @@
 [data-vendor="azure"] .nav-item.is-active::after { background: var(--color-primary); }
 
 /* Home + AWS: dark nav, light text */
-[data-vendor="home"], [data-vendor="aws"] { --nav-item-color: #D1D5DB; --nav-brand-color: #FFFFFF; }
+[data-vendor="home"], [data-vendor="aws"], [data-vendor="oracle"] { --nav-item-color: #D1D5DB; --nav-brand-color: #FFFFFF; }
 [data-vendor="gcp"], [data-vendor="azure"] { --nav-item-color: var(--color-text-secondary); --nav-brand-color: var(--color-text-primary); }

@@ -14,6 +14,7 @@ const csps = [
   { id: 'aws', name: 'Amazon Web Services', color: '#FF9900', accent: '#232F3E', font: "'Amazon Ember', sans-serif" },
   { id: 'gcp', name: 'Google Cloud', color: 'linear-gradient(to right, #4285F4 25%, #EA4335 25%, #EA4335 50%, #FBBC04 50%, #FBBC04 75%, #34A853 75%)', accent: '#4285F4', isGradient: true, font: "'Google Sans', sans-serif", weight: 700 },
   { id: 'azure', name: 'Microsoft Azure', color: '#0078D4', accent: '#50E6FF', font: "'Segoe UI Web', 'Segoe UI', sans-serif" },
+  { id: 'oracle', name: 'Oracle Cloud Infrastructure', color: '#C74634', accent: '#C74634', font: "'Oracle Sans', 'Pretendard Variable', sans-serif", weight: 600 },
 ];
 
 const data: Record<string, any[]> = {};
@@ -77,8 +78,8 @@ const structuredData = [
     </p>
   </div>
 
-  <!-- 3-column layout -->
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+  <!-- Vendor columns: 1 / 2 / 4 across breakpoints (4 CSPs) -->
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 sm:gap-8">
     {csps.map(c => (
       <section class="p-5 rounded-2xl" style="background: var(--color-surface); border: 1px solid var(--color-border); box-shadow: var(--card-shadow);">
         <div class="flex items-center justify-between mb-4 pb-2 border-b-2" style={c.isGradient ? `border-image: ${c.color} 1;` : `border-color: ${c.color};`}>

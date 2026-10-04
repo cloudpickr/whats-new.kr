@@ -5,14 +5,6 @@
    ============================================================ */
 
 /* ---------- Update card ---------- */
-/* LCP note: the card title + body are the mobile LCP element (Korean text).
-   Pin them to a system-Korean-first stack so first paint doesn't wait on the
-   external Pretendard subset chain (8+ jsDelivr woff2 requests). Pretendard
-   still applies site-wide via body; here we deliberately prefer the native
-   face so LCP is font-independent. CLS stays 0 (metrics are close enough). */
-.update-card__title, .update-card__body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Segoe UI', 'Pretendard Variable', system-ui, sans-serif;
-}
 .update-card {
   display: block;
   text-decoration: none;

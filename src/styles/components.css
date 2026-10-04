@@ -221,8 +221,11 @@
 @media (min-width: 900px)  { .page-head { flex-direction: row; align-items: center; justify-content: space-between; gap: 1rem; } }
 .page-head__text { display: flex; flex-direction: column; gap: .25rem; min-width: 0; }
 .page-head__title { display: flex; align-items: flex-start; gap: .5rem; font-size: 1.125rem; font-weight: 800; letter-spacing: -.01em; line-height: 1.3; color: var(--color-text-primary); }
-@media (min-width: 640px) { .page-head__title { font-size: 1.25rem; } }
-.page-head__title-text { min-width: 0; }
+/* Reserve two lines of title height on narrow screens so a brand-font swap
+   that reflows the title from 2 lines to 1 (or vice versa) doesn't yank the
+   content below it upward — this was an intermittent ~0.56 CLS source. */
+.page-head__title-text { min-width: 0; min-height: 2.6em; }
+@media (min-width: 640px) { .page-head__title { font-size: 1.25rem; } .page-head__title-text { min-height: 0; } }
 .page-head__dot { flex-shrink: 0; margin-top: .3em; width: .75rem; height: .75rem; border-radius: 9999px; background: var(--color-primary); animation: head-pulse 2s cubic-bezier(.4,0,.6,1) infinite; }
 @keyframes head-pulse { 50% { opacity: .5; } }
 .page-head__counter { color: var(--color-text-secondary); font-weight: 400; font-size: .875rem; margin-left: .35rem; white-space: nowrap; }

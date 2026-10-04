@@ -1,0 +1,57 @@
+/* All vendor brand @font-face in one static sheet, loaded via a single
+ * <link transition:persist> in Layout.astro. Keeping every brand face in one
+ * persisted sheet (shared by all vendor pages) prevents Astro ClientRouter
+ * from removing/re-adding the stylesheet on client-side navigation — a
+ * remove+re-add made Chrome skip re-applying @font-face to already-painted
+ * text, so brand fonts only appeared after a full refresh. */
+
+/* Amazon Ember (AWS) — self-hosted */
+@font-face {
+  font-family: 'Amazon Ember';
+  src: url('/fonts/amazon-ember-400.woff2') format('woff2');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Amazon Ember';
+  src: url('/fonts/amazon-ember-700.woff2') format('woff2');
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+
+/* Segoe UI Web (Azure) — Microsoft CDN */
+@font-face {
+  font-family: 'Segoe UI Web';
+  src: url(https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/Normal/latest.woff2) format('woff2');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Segoe UI Web';
+  src: url(https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/Semibold/latest.woff2) format('woff2');
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Segoe UI Web';
+  src: url(https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/Bold/latest.woff2) format('woff2');
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+
+/* Oracle Sans (OCI) — self-hosted (proprietary; shipped at owner's decision) */
+@font-face {
+  font-family: 'Oracle Sans';
+  src: url('/fonts/oracle-sans-400.woff2') format('woff2');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Oracle Sans';
+  src: url('/fonts/oracle-sans-600.woff2') format('woff2');
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Oracle Sans';
+  src: url('/fonts/oracle-sans-700.woff2') format('woff2');
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Oracle Sans';
+  src: url('/fonts/oracle-sans-italic.woff2') format('woff2');
+  font-weight: 400; font-style: italic; font-display: swap;
+}

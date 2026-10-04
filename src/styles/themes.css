@@ -73,7 +73,7 @@
   --color-primary: #0972D3; --color-accent: #FF9900;
   --color-bg: #F2F3F3; --color-surface: #FFFFFF; --color-border: #D5DBDB;
   --color-text-primary: #000716; --color-text-secondary: #5F6B7A;
-  --font-family: 'Amazon Ember', 'Pretendard Variable', -apple-system, sans-serif;
+  --font-family: 'Amazon Ember', -apple-system, 'Apple SD Gothic Neo', 'Pretendard Variable', sans-serif;
   --font-weight-title: 700;
   --radius: 8px; --card-radius: 8px; --chip-radius: 20px; --input-radius: 8px; --badge-radius: 4px; --btn-radius: 4px;
   --nav-bg: #232F3E; --nav-height: 56px;
@@ -126,7 +126,7 @@
   --color-surface-container: #F0F4F9; --color-surface-container-high: #E9EEF6;
   --color-outline: #747775; --color-on-surface: #1F1F1F;
   --color-text-primary: #202124; --color-text-secondary: #5F6368;
-  --font-family: 'Google Sans', 'Pretendard Variable', Roboto, -apple-system, sans-serif;
+  --font-family: 'Google Sans', Roboto, -apple-system, 'Apple SD Gothic Neo', 'Pretendard Variable', sans-serif;
   --font-weight-title: 500;
   --radius: 12px; --card-radius: 12px; --chip-radius: 8px; --input-radius: 28px; --badge-radius: 8px; --btn-radius: 20px;
   --nav-bg: #FFFFFF; --nav-height: 64px;
@@ -181,7 +181,7 @@
   --color-bg: #FAF9F8; --color-surface: #FFFFFF; --color-border: #E0E0E0;
   --color-stroke-strong: #616161; --color-stroke: #D1D1D1;
   --color-text-primary: #242424; --color-text-secondary: #616161;
-  --font-family: 'Segoe UI Variable Text', 'Segoe UI Web', 'Segoe UI', 'Pretendard Variable', -apple-system, sans-serif;
+  --font-family: 'Segoe UI Variable Text', 'Segoe UI Web', 'Segoe UI', -apple-system, 'Apple SD Gothic Neo', 'Pretendard Variable', sans-serif;
   --font-weight-title: 600;
   --radius: 4px; --card-radius: 4px; --chip-radius: 4px; --input-radius: 4px; --badge-radius: 4px; --btn-radius: 4px;
   --nav-bg: #FFFFFF; --nav-height: 48px;
@@ -234,7 +234,7 @@
   --color-primary: #C74634; --color-accent: #3A3632;
   --color-bg: #FBF9F8; --color-surface: #FFFFFF; --color-border: #E4DEDA;
   --color-text-primary: #201A17; --color-text-secondary: #6B625C;
-  --font-family: 'Oracle Sans', -apple-system, 'Helvetica Neue', 'Segoe UI', Roboto, 'Pretendard Variable', sans-serif;
+  --font-family: 'Oracle Sans', -apple-system, 'Apple SD Gothic Neo', 'Helvetica Neue', 'Segoe UI', Roboto, 'Pretendard Variable', sans-serif;
   --font-weight-title: 600;
   --radius: 6px; --card-radius: 6px; --chip-radius: 6px; --input-radius: 6px; --badge-radius: 4px; --btn-radius: 6px;
   --nav-bg: #3A3632; --nav-height: 56px;

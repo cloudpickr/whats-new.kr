@@ -71,8 +71,13 @@ const fontPreload: Record<string, string> = {
          + TLS on the critical path. -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     {fontPreload[vendor] && <link rel="preload" as="font" type="font/woff2" href={fontPreload[vendor]} crossorigin />}
-    <!-- Google Sans (GCP brand face) — non-blocking; was a render-blocking @import chain -->
-    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" media="print" onload="this.media='all'" rel="stylesheet">
+    <!-- Google Sans (GCP brand face) — only loaded on GCP pages. Normal
+         stylesheet (not the media="print" swap trick, which left Google Sans
+         inconsistently applied): font-display:swap already keeps text paint
+         non-blocking, and the preconnect above covers DNS/TLS. -->
+    {(vendor === 'gcp' || vendor === 'home') && (
+      <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+    )}
     <!-- Pretendard: single Korean face for every vendor stack. Loaded async
          (preload-as-style + onload swap) so it is NOT render-blocking; the
          jsDelivr preconnect above pays DNS+TLS up front so the subset CSS +
@@ -81,7 +86,6 @@ const fontPreload: Record<string, string> = {
     <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" onload="this.onload=null;this.rel='stylesheet'" fetchpriority="high">
     <noscript>
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap">
     </noscript>
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>

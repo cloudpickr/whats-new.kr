@@ -181,7 +181,7 @@
   --color-bg: #FAF9F8; --color-surface: #FFFFFF; --color-border: #E0E0E0;
   --color-stroke-strong: #616161; --color-stroke: #D1D1D1;
   --color-text-primary: #242424; --color-text-secondary: #616161;
-  --font-family: 'Segoe UI Variable Text', 'Segoe UI Web', 'Segoe UI', -apple-system, 'Apple SD Gothic Neo', 'Pretendard Variable', sans-serif;
+  --font-family: 'Segoe UI Web', 'Segoe UI', -apple-system, 'Apple SD Gothic Neo', 'Pretendard Variable', sans-serif;
   --font-weight-title: 600;
   --radius: 4px; --card-radius: 4px; --chip-radius: 4px; --input-radius: 4px; --badge-radius: 4px; --btn-radius: 4px;
   --nav-bg: #FFFFFF; --nav-height: 48px;

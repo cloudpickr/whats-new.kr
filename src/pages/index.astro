@@ -78,8 +78,10 @@ const structuredData = [
     </p>
   </div>
 
-  <!-- Vendor columns: 1 / 2 / 4 across breakpoints (4 CSPs) -->
-  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 sm:gap-8">
+  <!-- Vendor columns: 1 / 2 / 4 across breakpoints (4 CSPs). Jump straight from
+       2→4 at lg so the 2-up layout doesn't dominate on laptops; 4 CSPs tile
+       evenly as 4-up (3-up would leave an orphan). -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
     {csps.map(c => (
       <section class="p-5 rounded-2xl" style="background: var(--color-surface); border: 1px solid var(--color-border); box-shadow: var(--card-shadow);">
         <div class="flex items-center justify-between mb-4 pb-2 border-b-2" style={c.isGradient ? `border-image: ${c.color} 1;` : `border-color: ${c.color};`}>

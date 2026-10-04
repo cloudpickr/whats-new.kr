@@ -30,6 +30,7 @@ const structuredDataItems = Array.isArray(structuredData) ? structuredData : [st
 const fontPreload: Record<string, string> = {
   aws: '/fonts/amazon-ember-400.woff2',
   azure: 'https://c.s-microsoft.com/static/fonts/segoe-ui/west-european/Normal/latest.woff2',
+  oci: '/fonts/oracle-sans-600.woff2',
 };
 ---
 
@@ -50,10 +51,10 @@ const fontPreload: Record<string, string> = {
         --color-border: ${vendor === 'aws' ? '#D5DBDB' : vendor === 'gcp' ? 'transparent' : vendor === 'azure' ? '#EDEBE9' : vendor === 'oci' ? '#E4DEDA' : '#E4E7EC'};
       }
       [data-theme="dark"] {
-        --color-bg: ${vendor === 'aws' ? '#16191f' : vendor === 'gcp' ? '#202124' : vendor === 'azure' ? '#1B1A19' : vendor === 'oci' ? '#1A1613' : '#0F1117'};
-        --color-text-primary: ${vendor === 'aws' ? '#eaeded' : vendor === 'gcp' ? '#E8EAED' : vendor === 'azure' ? '#F3F2F1' : vendor === 'oci' ? '#F2EBE6' : '#F4F4F6'};
-        --nav-bg: ${vendor === 'aws' ? '#16191f' : vendor === 'gcp' ? '#292A2D' : vendor === 'azure' ? '#292827' : vendor === 'oci' ? '#1A1613' : '#0F1117'};
-        --color-border: ${vendor === 'aws' ? '#303846' : vendor === 'gcp' ? 'transparent' : vendor === 'azure' ? '#3B3A39' : vendor === 'oci' ? '#3A322C' : '#2D3148'};
+        --color-bg: ${vendor === 'aws' ? '#0F1B2A' : vendor === 'gcp' ? '#1A1C1E' : vendor === 'azure' ? '#141312' : vendor === 'oci' ? '#15100D' : '#0C0E14'};
+        --color-text-primary: ${vendor === 'aws' ? '#eaeded' : vendor === 'gcp' ? '#E8EAED' : vendor === 'azure' ? '#F3F2F1' : vendor === 'oci' ? '#F7EFE9' : '#F4F4F6'};
+        --nav-bg: ${vendor === 'aws' ? '#0D1521' : vendor === 'gcp' ? '#22262B' : vendor === 'azure' ? '#242322' : vendor === 'oci' ? '#241B16' : '#0C0E14'};
+        --color-border: ${vendor === 'aws' ? '#2E3C50' : vendor === 'gcp' ? 'transparent' : vendor === 'azure' ? '#3B3A39' : vendor === 'oci' ? '#43362D' : '#2A2E42'};
       }
       body { background-color: var(--color-bg); color: var(--color-text-primary); margin: 0; }
       body.no-transition { transition: none !important; }

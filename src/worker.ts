@@ -19,6 +19,49 @@ function isApiRequest(pathname: string): boolean {
   return API_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));
 }
 
+// Astro's Cloudflare adapter builds a Worker whose responses are NOT
+// automatically stored in Cloudflare's CDN cache — a Worker fetch response
+// bypasses the edge cache unless we explicitly use the Cache API. Page routes
+// set `Cache-Control: s-maxage=60, stale-while-revalidate=300` (see
+// [csp].astro), but without this layer every request re-ran the full SSR
+// render + backend D1 query, which showed up as a variable TTFB and large
+// LCP spikes in the field. This wraps GET page renders in the Cache API so a
+// hit serves cached HTML in ~tens of ms with no D1 round-trip.
+async function withEdgeCache(
+  request: Request,
+  ctx: ExecutionContext,
+  render: () => Promise<Response>,
+): Promise<Response> {
+  // Only cache top-level GET navigations. Skip anything with cookies/auth so
+  // we never cache a personalized response.
+  if (request.method !== 'GET' || request.headers.has('authorization') || request.headers.has('cookie')) {
+    return render();
+  }
+  const cache = (caches as unknown as { default: Cache }).default;
+  // Normalize the cache key to the URL only (drop the request's own headers).
+  const cacheKey = new Request(new URL(request.url).toString(), { method: 'GET' });
+
+  const cached = await cache.match(cacheKey);
+  if (cached) {
+    const hit = new Response(cached.body, cached);
+    hit.headers.set('X-Edge-Cache', 'HIT');
+    return hit;
+  }
+
+  const response = await render();
+
+  // Only store cacheable successes that opted in via s-maxage. HTML pages do;
+  // redirects (302 for unknown slugs) and errors do not.
+  const cc = response.headers.get('Cache-Control') || '';
+  if (response.status === 200 && /s-maxage=\d+/.test(cc)) {
+    ctx.waitUntil(cache.put(cacheKey, response.clone()));
+    const miss = new Response(response.body, response);
+    miss.headers.set('X-Edge-Cache', 'MISS');
+    return miss;
+  }
+  return response;
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     // Strip the internal-SSR trust header from every inbound external request
@@ -36,7 +79,7 @@ export default {
     if (isApiRequest(pathname)) {
       return backend.fetch(safeRequest, env, ctx);
     }
-    return handle(safeRequest, env as never, ctx);
+    return withEdgeCache(safeRequest, ctx, () => handle(safeRequest, env as never, ctx));
   },
 
   async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {

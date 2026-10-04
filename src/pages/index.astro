@@ -14,7 +14,7 @@ const csps = [
   { id: 'aws', name: 'Amazon Web Services', color: '#FF9900', accent: '#232F3E', font: "'Amazon Ember', sans-serif" },
   { id: 'gcp', name: 'Google Cloud', color: 'linear-gradient(to right, #4285F4 25%, #EA4335 25%, #EA4335 50%, #FBBC04 50%, #FBBC04 75%, #34A853 75%)', accent: '#4285F4', isGradient: true, font: "'Google Sans', sans-serif", weight: 700 },
   { id: 'azure', name: 'Microsoft Azure', color: '#0078D4', accent: '#50E6FF', font: "'Segoe UI Web', 'Segoe UI', sans-serif" },
-  { id: 'oracle', name: 'Oracle Cloud Infrastructure', color: '#C74634', accent: '#C74634', font: "'Oracle Sans', 'Pretendard Variable', sans-serif", weight: 600 },
+  { id: 'oracle', name: 'Oracle Cloud Infrastructure', color: '#C74634', accent: '#C74634', font: "'Oracle Sans', -apple-system, 'Helvetica Neue', 'Segoe UI', Roboto, sans-serif", weight: 600 },
 ];
 
 const data: Record<string, any[]> = {};
@@ -89,8 +89,8 @@ const structuredData = [
               {c.name}
             </h2>
           </div>
-          <a href={`/${c.id}`} class="text-xs font-bold px-2.5 py-1 rounded-full transition-colors hover:opacity-80" style={`color: ${c.isGradient ? c.accent : c.color}; background: color-mix(in srgb, ${c.isGradient ? c.accent : c.color} 10%, transparent);`}>
-            전체 보기 →
+          <a href={`/${c.id}`} aria-label={`${c.name} 전체 보기`} title={`${c.name} 전체 보기`} class="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-sm font-bold transition-colors hover:opacity-80" style={`color: ${c.isGradient ? c.accent : c.color}; background: color-mix(in srgb, ${c.isGradient ? c.accent : c.color} 10%, transparent);`}>
+            →
           </a>
         </div>
         <ul class="space-y-0">

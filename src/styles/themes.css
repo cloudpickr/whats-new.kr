@@ -219,7 +219,7 @@
   --color-primary: #C74634; --color-accent: #3A3632;
   --color-bg: #FBF9F8; --color-surface: #FFFFFF; --color-border: #E4DEDA;
   --color-text-primary: #201A17; --color-text-secondary: #6B625C;
-  --font-family: 'Oracle Sans', 'Pretendard Variable', -apple-system, 'Helvetica Neue', sans-serif;
+  --font-family: 'Oracle Sans', -apple-system, 'Helvetica Neue', 'Segoe UI', Roboto, 'Pretendard Variable', sans-serif;
   --font-weight-title: 600;
   --radius: 6px; --card-radius: 6px; --chip-radius: 6px; --input-radius: 6px; --badge-radius: 4px; --btn-radius: 6px;
   --nav-bg: #3A3632; --nav-height: 56px;

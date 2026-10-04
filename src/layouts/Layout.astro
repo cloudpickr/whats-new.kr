@@ -56,7 +56,9 @@ const fontPreload: Record<string, string> = {
         --nav-bg: ${vendor === 'aws' ? '#0D1521' : vendor === 'gcp' ? '#22262B' : vendor === 'azure' ? '#242322' : vendor === 'oci' ? '#241B16' : '#0C0E14'};
         --color-border: ${vendor === 'aws' ? '#2E3C50' : vendor === 'gcp' ? 'transparent' : vendor === 'azure' ? '#3B3A39' : vendor === 'oci' ? '#43362D' : '#2A2E42'};
       }
-      body { background-color: var(--color-bg); color: var(--color-text-primary); margin: 0; }
+      body { background-color: var(--color-bg); color: var(--color-text-primary); margin: 0; font-family: ${
+        vendor === 'aws' ? "'Amazon Ember', " : vendor === 'oci' ? "'Oracle Sans', " : ''
+      }'Pretendard Variable', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Segoe UI', system-ui, sans-serif; }
       body.no-transition { transition: none !important; }
       header { position: sticky; top: 0; z-index: 50; height: var(--nav-height); min-height: var(--nav-height); background-color: var(--nav-bg); border-bottom: 1px solid var(--color-border); }
     `} />

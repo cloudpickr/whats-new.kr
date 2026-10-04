@@ -71,6 +71,12 @@ const fontPreload: Record<string, string> = {
          + TLS on the critical path. -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     {fontPreload[vendor] && <link rel="preload" as="font" type="font/woff2" href={fontPreload[vendor]} crossorigin transition:persist transition:name={`font-preload-${vendor}`} />}
+    <!-- All vendor brand @font-face rules in one static, persisted stylesheet.
+         Shared by every vendor page and marked transition:persist so Astro
+         ClientRouter never removes/re-adds it on client-side navigation (that
+         remove/re-add made Chrome skip re-applying @font-face to painted text,
+         so brand fonts only appeared after a full refresh). -->
+    <link rel="stylesheet" href="/fonts/brand-fonts.css" transition:persist transition:name="brand-fonts-css" />
     <!-- Google Sans (GCP + home brand face). Loaded as a normal stylesheet on
          every page and marked transition:persist so Astro's View Transitions
          keep it across client-side navigations. Previously it was conditional
@@ -80,12 +86,14 @@ const fontPreload: Record<string, string> = {
          uniform; font-display:swap keeps paint non-blocking and @font-face
          woff2 is only fetched when a glyph actually needs it. -->
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet" transition:persist transition:name="google-sans-css" />
-    <!-- Pretendard: single Korean face for every vendor stack. Loaded async
-         (preload-as-style + onload swap) so it is NOT render-blocking; the
-         jsDelivr preconnect above pays DNS+TLS up front so the subset CSS +
-         woff2 still arrive early, and font-display:swap paints text immediately
-         in the fallback meanwhile. -->
-    <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" onload="this.onload=null;this.rel='stylesheet'" fetchpriority="high">
+    <!-- Pretendard: single Korean face for every vendor stack. Loaded as a
+         normal stylesheet (not the preload+onload swap trick) so it also
+         activates under Astro ClientRouter client-side navigation, whose
+         DOMParser-appended <head> never fires inline onload handlers — that
+         left Pretendard inactive until a full refresh. transition:persist keeps
+         it across navigations. preconnect above pays DNS+TLS up front and
+         font-display:swap paints text immediately in the fallback meanwhile. -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" fetchpriority="high" transition:persist transition:name="pretendard-css">
     <noscript>
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
     </noscript>

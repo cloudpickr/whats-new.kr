@@ -1,14 +1,10 @@
-/* Vendor brand fonts — required on every page, including the home page,
- * where all three CSP sections are rendered side by side. Do not move these
- * behind a per-vendor conditional import for performance: the home page must
- * ship AWS / Google Cloud / Azure brand faces.
- * (Google Sans is loaded via <link> in Layout.astro — a CSS @import would
- *  create a render-blocking request chain.)
- * (Oracle Sans is a self-hosted proprietary OCI brand face, shipped at the
- *  owner's explicit decision; system sans fallbacks follow if it fails.) */
-@import "./segoe-ui.css";
-@import "./amazon-ember.css";
-@import "./oracle-sans.css";
+/* Vendor brand @font-face declarations now live in /public/fonts/brand-fonts.css,
+ * loaded via a single <link transition:persist> in Layout.astro. They were moved
+ * out of this bundled stylesheet because Astro ClientRouter removes/re-adds
+ * non-persisted <head> stylesheets on client-side navigation, and Chrome then
+ * failed to re-apply the @font-face rules to already-painted text — so brand
+ * fonts only showed up after a full refresh. A single persisted sheet shared by
+ * every vendor page avoids that remove/re-add entirely. */
 
 /* ============================================================
    Token contract (every [data-vendor] must define all of these)

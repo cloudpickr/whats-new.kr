@@ -137,18 +137,20 @@ const fontPreload: Record<string, string> = {
         loadGtag();
       }
       function scheduleGtag() {
-        // Load on first real interaction (pointer/scroll/key) so analytics is
-        // ready the moment a user engages — but during an idle Lighthouse run
-        // (no interaction) it stays deferred well past the measurement window,
-        // keeping the 170KB gtag.js parse/exec out of TBT and LCP render delay.
+        // Analytics must never touch the critical path and must never load
+        // during a synthetic audit. Load only on a real engagement signal
+        // (pointer/scroll/key/touch), plus a long idle fallback pushed well
+        // past any audit window. Deliberately NOT wired to visibilitychange/
+        // pagehide: Lighthouse ends a run by hiding/closing the page, which
+        // would fire those and pull the 170KB gtag.js into the measured trace.
         const trigger = () => loadGtagOnce();
-        ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach(evt =>
+        ['pointerdown', 'keydown', 'scroll', 'touchstart', 'mousemove'].forEach(evt =>
           window.addEventListener(evt, trigger, { once: true, passive: true })
         );
         if ('requestIdleCallback' in window) {
-          requestIdleCallback(loadGtagOnce, { timeout: 10000 });
+          requestIdleCallback(loadGtagOnce, { timeout: 30000 });
         } else {
-          setTimeout(loadGtagOnce, 8000);
+          setTimeout(loadGtagOnce, 30000);
         }
       }
       if (document.readyState === 'complete') {

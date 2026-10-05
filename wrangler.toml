@@ -29,6 +29,17 @@ max_batch_timeout = 1
 max_retries = 3
 dead_letter_queue = "cloud-whats-new-translation-jobs-dlq"
 
+# Workers Logs — automatically collect/store/query logs (invocation logs,
+# console.log, errors, uncaught exceptions) in the Cloudflare dashboard under
+# the Worker's Observability tab. 7-day retention on the Paid plan.
+# head_sampling_rate = 1 logs 100% of requests. NOTE: this Worker runs a
+# */1 cron (~43k invocations/month) plus site + queue traffic, so if log volume
+# or cost grows, lower head_sampling_rate (e.g. 0.1 = 10%) — all logs within a
+# sampled request are still captured together.
+[observability]
+enabled = true
+head_sampling_rate = 1
+
 [triggers]
 crons = ["*/1 * * * *"]
 

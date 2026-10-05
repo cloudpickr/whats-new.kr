@@ -2130,7 +2130,6 @@ export default {
 
     // MCP Server — JSON-RPC 2.0 over HTTP
     if (path === '/mcp' && request.method === 'POST') {
-      const rpc = await request.json();
       // format="source" tool calls check authContext.ok themselves (see
       // tools/call below); this just reflects it for telemetry/X-Auth-Status.
       const isAuthenticated = authContext.ok;
@@ -2141,6 +2140,20 @@ export default {
       };
       const respond = (id, result) => new Response(JSON.stringify({ jsonrpc: '2.0', id, result }), { headers: mcpHeaders });
       const error = (id, code, msg) => new Response(JSON.stringify({ jsonrpc: '2.0', id, error: { code, message: msg } }), { headers: mcpHeaders });
+
+      // Parse the JSON-RPC body defensively. A malformed or empty body (common
+      // from bots/scanners probing /mcp) used to throw out of this handler as an
+      // uncaught exception -> Cloudflare 1101 / HTTP 500, which piled up in
+      // Workers Issues. Return the standard JSON-RPC parse error instead.
+      let rpc;
+      try {
+        rpc = await request.json();
+      } catch {
+        return error(null, -32700, 'Parse error: request body is not valid JSON');
+      }
+      if (!rpc || typeof rpc !== 'object' || Array.isArray(rpc)) {
+        return error(null, -32600, 'Invalid Request: expected a JSON-RPC object');
+      }
 
       if (rpc.method === 'initialize') {
         return respond(rpc.id, {

@@ -1,0 +1,138 @@
+name: WAF setup (manual)
+
+# Configure free-tier WAF to block vulnerability-scanner noise at the edge, so
+# it never reaches the Worker or files observability issues.
+#   mode=probe   (default) read-only: find the zone, check token scope, list
+#                the entrypoint rulesets. Changes nothing.
+#   mode=apply   enable the Free Managed Ruleset + add one custom rule that
+#                blocks common scanner paths (free tier: no regex -> uses
+#                wildcard/contains on uri.path).
+#
+# Needs CLOUDFLARE_API_TOKEN to include Zone.WAF (and Zone read) for whats-new.kr.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'probe | apply'
+        required: true
+        default: 'probe'
+        type: choice
+        options: [probe, apply]
+
+permissions:
+  contents: read
+
+jobs:
+  waf:
+    runs-on: ubuntu-latest
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      MODE: ${{ github.event.inputs.mode }}
+      ZONE_NAME: whats-new.kr
+    steps:
+      - name: Configure WAF
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request, urllib.error
+
+          token = os.environ["CF_TOKEN"]
+          account = os.environ["CF_ACCOUNT"]
+          mode = (os.environ.get("MODE") or "probe").strip()
+          zone_name = os.environ["ZONE_NAME"]
+          api = "https://api.cloudflare.com/client/v4"
+
+          def call(method, path, body=None):
+              url = api + path
+              data = json.dumps(body).encode() if body is not None else None
+              req = urllib.request.Request(url, data=data, method=method,
+                  headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+              try:
+                  with urllib.request.urlopen(req) as r:
+                      return r.status, json.loads(r.read().decode("utf-8", "replace"))
+              except urllib.error.HTTPError as e:
+                  try:
+                      return e.code, json.loads(e.read().decode("utf-8", "replace"))
+                  except Exception:
+                      return e.code, {"raw": "non-json"}
+
+          # 1) Find the zone id
+          c, d = call("GET", f"/zones?name={zone_name}")
+          if c != 200 or not d.get("success") or not d.get("result"):
+              print(f"Zone lookup failed: HTTP {c}: {json.dumps(d)[:400]}")
+              raise SystemExit(1)
+          zone = d["result"][0]
+          zid = zone["id"]
+          print(f"Zone: {zone_name} -> {zid} (plan: {zone.get('plan',{}).get('name','?')})")
+
+          # 2) List the http_request_firewall_custom entrypoint ruleset
+          c, d = call("GET", f"/zones/{zid}/rulesets/phases/http_request_firewall_custom/entrypoint")
+          print(f"custom-phase entrypoint: HTTP {c}")
+          if c == 200:
+              rs = d.get("result", {})
+              print(f"  ruleset id: {rs.get('id')}  rules: {len(rs.get('rules',[]))}")
+              for r in rs.get("rules", []):
+                  print(f"    - {r.get('description','')[:60]}  action={r.get('action')}")
+          else:
+              print(f"  {json.dumps(d)[:300]}")
+
+          # 3) Managed ruleset entrypoint (to enable Free Managed Ruleset)
+          c2, d2 = call("GET", f"/zones/{zid}/rulesets/phases/http_request_firewall_managed/entrypoint")
+          print(f"managed-phase entrypoint: HTTP {c2}")
+
+          if mode != "apply":
+              print("\nmode=probe; no changes. If HTTP 200 above, token has WAF scope.")
+              raise SystemExit(0)
+
+          # ---- apply ----
+          # Free tier: no regex. Block common scanner paths using wildcard matches
+          # on lower(http.request.uri.path). One custom rule, OR-combined.
+          scanner_expr = " or ".join([
+              'http.request.uri.path.lower contains ".php"',
+              'http.request.uri.path.lower contains ".env"',
+              'http.request.uri.path.lower contains ".git"',
+              'http.request.uri.path.lower contains "/wp-"',
+              'http.request.uri.path.lower contains "/wp/"',
+              'http.request.uri.path.lower contains "wordpress"',
+              'http.request.uri.path.lower contains "/.aws"',
+              'http.request.uri.path.lower contains "/.ssh"',
+              'http.request.uri.path.lower contains ".dockerenv"',
+              'http.request.uri.path.lower contains "phpmyadmin"',
+              'http.request.uri.path.lower contains "/console"',
+              'http.request.uri.path.lower contains "xmlrpc"',
+              'http.request.uri.path.lower contains "service-account"',
+              'http.request.uri.path.lower contains "secrets."',
+              'http.request.uri.path.lower contains "/cgi-bin"',
+          ])
+          rule = {
+              "action": "block",
+              "description": "Block vulnerability-scanner probe paths (edge)",
+              "expression": scanner_expr,
+              "enabled": True,
+          }
+          # Append to the custom entrypoint via PUT (replace rules = existing + new).
+          c, d = call("GET", f"/zones/{zid}/rulesets/phases/http_request_firewall_custom/entrypoint")
+          existing = d.get("result", {}).get("rules", []) if c == 200 else []
+          # avoid duplicate by description
+          existing = [r for r in existing if r.get("description") != rule["description"]]
+          # strip server-managed fields from existing rules for the PUT body
+          clean = []
+          for r in existing:
+              clean.append({k: r[k] for k in ("action","description","expression","enabled") if k in r})
+          clean.append(rule)
+          c, d = call("PUT", f"/zones/{zid}/rulesets/phases/http_request_firewall_custom/entrypoint",
+                      {"rules": clean})
+          print(f"\nPUT custom rules -> HTTP {c}: {'OK' if d.get('success') else json.dumps(d)[:400]}")
+
+          # Enable Free Managed Ruleset (deploy managed ruleset in managed phase).
+          # Free Managed Ruleset id is a well-known constant.
+          FREE_MANAGED = "4814384a9e5d4991b9815dcfc25d2f1f"
+          c, d = call("PUT", f"/zones/{zid}/rulesets/phases/http_request_firewall_managed/entrypoint",
+                      {"rules": [{"action": "execute",
+                                  "action_parameters": {"id": FREE_MANAGED},
+                                  "expression": "true",
+                                  "enabled": True,
+                                  "description": "Cloudflare Free Managed Ruleset"}]})
+          print(f"Enable Free Managed Ruleset -> HTTP {c}: {'OK' if d.get('success') else json.dumps(d)[:400]}")
+          PY

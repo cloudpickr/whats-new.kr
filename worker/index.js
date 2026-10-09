@@ -1898,7 +1898,18 @@ export default {
 
         msg.retry({ delaySeconds: calculateRetryDelay(msg.attempts || 0) });
       } catch (e) {
-        console.error(`queue translate error for article ${articleId} [${lang}]:`, e.message);
+        const emsg = (e && e.message) || String(e);
+        // A FOREIGN KEY violation means the parent article was deleted (e.g.
+        // by the 30-day cleanup cron) while this translation job was in flight.
+        // Retrying can never succeed — the article is gone — so ack and drop
+        // the job instead of retrying forever and piling up Workers Issues.
+        if (/FOREIGN KEY|SQLITE_CONSTRAINT/i.test(emsg)) {
+          console.warn(`queue translate dropped for article ${articleId} [${lang}]: parent article gone (${emsg})`);
+          await touchTranslationJob(env, articleId, lang, 'article_deleted').catch(() => {});
+          msg.ack();
+          continue;
+        }
+        console.error(`queue translate error for article ${articleId} [${lang}]:`, emsg);
         msg.retry({ delaySeconds: calculateRetryDelay(msg.attempts || 0) });
       }
     }

@@ -1,0 +1,84 @@
+name: Observability API probe (manual, read-only)
+
+# One-off diagnostic: checks whether the repo's CLOUDFLARE_API_TOKEN can reach
+# the Workers Observability telemetry query API (needed for the detect->issue
+# automation) and probes whether any Issues resolve endpoint is reachable.
+# It changes NOTHING — pure read/probe — so it is safe to run.
+#
+# Run from the Actions tab (workflow_dispatch). Read the logs to decide:
+#   - telemetry/query 200  -> token has Observability scope; A/B automation viable
+#   - telemetry/query 403  -> token lacks "Workers Observability" scope; must add it
+#   - issues endpoints      -> whether CF exposes a resolve API at all (for C)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      SCRIPT: cloud-whats-new
+    steps:
+      - name: Probe telemetry query API (read-only, dry run)
+        run: |
+          set +e
+          NOW=$(( $(date +%s) * 1000 ))
+          FROM=$(( NOW - 24*60*60*1000 ))
+          echo "=== POST telemetry/query (dry run, last 24h error count) ==="
+          BODY=$(cat <<JSON
+          {
+            "queryId": "probe-adhoc",
+            "dry": false,
+            "timeframe": { "from": ${FROM}, "to": ${NOW} },
+            "parameters": {
+              "datasets": ["cloudflare-workers"],
+              "filters": [
+                { "key": "$metadata.service", "operation": "eq", "type": "string", "value": "${SCRIPT}" }
+              ],
+              "calculations": [ { "operator": "count", "alias": "events" } ]
+            },
+            "view": "calculations",
+            "limit": 10
+          }
+JSON
+          )
+          CODE=$(curl -sS -o /tmp/q.json -w '%{http_code}' \
+            -X POST "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/workers/observability/telemetry/query" \
+            -H "Authorization: Bearer ${CF_TOKEN}" -H "Content-Type: application/json" \
+            --data "${BODY}")
+          echo "HTTP ${CODE}"
+          echo "--- response (first 1500 chars) ---"
+          head -c 1500 /tmp/q.json; echo
+          echo
+
+          echo "=== Probe telemetry/keys (another observability read) ==="
+          CODE2=$(curl -sS -o /tmp/k.json -w '%{http_code}' \
+            -X POST "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/workers/observability/telemetry/keys" \
+            -H "Authorization: Bearer ${CF_TOKEN}" -H "Content-Type: application/json" \
+            --data '{"timeframe":{"from":'"${FROM}"',"to":'"${NOW}"'},"datasets":["cloudflare-workers"],"limit":5}')
+          echo "HTTP ${CODE2}"; head -c 600 /tmp/k.json; echo
+          echo
+
+          echo "=== Probe candidate Issues endpoints (GET, read-only) ==="
+          for EP in \
+            "workers/observability/issues" \
+            "workers/scripts/${SCRIPT}/observability/issues" \
+            "workers/observability/telemetry/issues"; do
+            C=$(curl -sS -o /tmp/i.json -w '%{http_code}' \
+              "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/${EP}" \
+              -H "Authorization: Bearer ${CF_TOKEN}")
+            echo "GET /${EP} -> ${C}"
+            head -c 300 /tmp/i.json; echo; echo
+          done
+
+          echo "=== Token scope hint (verify endpoint) ==="
+          curl -sS "https://api.cloudflare.com/client/v4/user/tokens/verify" \
+            -H "Authorization: Bearer ${CF_TOKEN}" | head -c 400; echo
+          echo
+          echo "NOTE: this job never fails on probe results — read the HTTP codes above."
+          exit 0

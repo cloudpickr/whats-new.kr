@@ -1,0 +1,59 @@
+name: Observability — resolve CF issue on GitHub close
+
+# [C] fix/close -> CF resolve. When a cf-observability GitHub issue is closed
+# (e.g. by a fix PR's "Fixes #<n>"), read the embedded cf-issue-id from its body
+# and PATCH the Cloudflare issue to status=resolved. This completes the loop:
+#   CF detects -> [A] GitHub issue -> human/agent fix PR -> GitHub close ->
+#   [C] CF issue resolved.
+#
+# No-op (and never fails the run) if the closed issue has no cf-issue-id marker,
+# so closing ordinary issues is unaffected.
+
+on:
+  issues:
+    types: [closed]
+
+permissions:
+  contents: read
+  issues: read
+
+jobs:
+  resolve:
+    # Only act on issues we filed from Cloudflare observability.
+    if: contains(join(github.event.issue.labels.*.name, ','), 'cf-observability')
+    runs-on: ubuntu-latest
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      ISSUE_BODY: ${{ github.event.issue.body }}
+      ISSUE_NUM: ${{ github.event.issue.number }}
+    steps:
+      - name: Resolve mapped Cloudflare issue
+        run: |
+          python3 - <<'PY'
+          import json, os, re, urllib.request, urllib.error
+
+          token = os.environ["CF_TOKEN"]
+          account = os.environ["CF_ACCOUNT"]
+          body = os.environ.get("ISSUE_BODY") or ""
+          num = os.environ.get("ISSUE_NUM")
+
+          m = re.search(r"cf-issue-id:\s*([0-9a-f-]{8,})", body)
+          if not m:
+              print(f"GH #{num}: no cf-issue-id marker; nothing to resolve.")
+              raise SystemExit(0)
+          cid = m.group(1)
+          url = f"https://api.cloudflare.com/client/v4/accounts/{account}/workers/observability/issues/{cid}"
+          req = urllib.request.Request(url, data=json.dumps({"status": "resolved"}).encode(),
+              method="PATCH",
+              headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+          try:
+              with urllib.request.urlopen(req) as r:
+                  st, resp = r.status, json.loads(r.read().decode("utf-8", "replace"))
+          except urllib.error.HTTPError as e:
+              st, resp = e.code, {"raw": e.read().decode("utf-8", "replace")}
+          ok = st == 200 and isinstance(resp, dict) and resp.get("success", False)
+          print(f"GH #{num} -> CF {cid}: PATCH status=resolved -> {st} {'OK' if ok else json.dumps(resp)[:300]}")
+          if not ok:
+              raise SystemExit(1)
+          PY

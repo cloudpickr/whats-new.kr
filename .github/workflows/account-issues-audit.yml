@@ -1,0 +1,63 @@
+name: Account-wide observability audit (read-only)
+
+# Audit active Workers Observability issues across ALL Workers in the account,
+# not just cloud-whats-new. Lists each Worker (script) and its active issues so
+# we can see which other services have vulnerabilities/errors worth fixing.
+# Read-only — lists only, changes nothing.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: List all Workers and their active issues
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request, urllib.error
+
+          token = os.environ["CF_TOKEN"]; account = os.environ["CF_ACCOUNT"]
+          api = "https://api.cloudflare.com/client/v4"
+
+          def call(method, path, body=None):
+              data = json.dumps(body).encode() if body is not None else None
+              req = urllib.request.Request(api + path, data=data, method=method,
+                  headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+              try:
+                  with urllib.request.urlopen(req) as r:
+                      return r.status, json.loads(r.read().decode("utf-8", "replace"))
+              except urllib.error.HTTPError as e:
+                  try: return e.code, json.loads(e.read().decode("utf-8", "replace"))
+                  except Exception: return e.code, {"raw": "non-json"}
+
+          # 1) List all Worker scripts in the account.
+          c, d = call("GET", f"/accounts/{account}/workers/scripts")
+          scripts = [s.get("id") for s in d.get("result", [])] if c == 200 else []
+          print(f"Workers in account: {len(scripts)}")
+          for s in scripts:
+              print(f"  - {s}")
+          print()
+
+          # 2) All active issues account-wide (no service filter).
+          c, d = call("GET", "/accounts/%s/workers/observability/issues?status=active&limit=200" % account)
+          if c != 200 or not d.get("success"):
+              print(f"issues list failed: HTTP {c}: {json.dumps(d)[:400]}")
+              raise SystemExit(0)
+          issues = d.get("result") or []
+          print(f"=== Active issues account-wide: {len(issues)} ===")
+          by_service = {}
+          for it in issues:
+              svc = it.get("service", "?")
+              by_service.setdefault(svc, []).append(it)
+          for svc, items in sorted(by_service.items(), key=lambda x: -len(x[1])):
+              print(f"\n[{svc}] {len(items)} issue(s)")
+              for it in sorted(items, key=lambda x: -(x.get('count') or 0)):
+                  print(f"   {it.get('id')}  events={it.get('count','?')}  {str(it.get('title',''))[:72]}")
+          PY

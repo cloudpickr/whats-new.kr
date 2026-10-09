@@ -19,47 +19,12 @@ function isApiRequest(pathname: string): boolean {
   return API_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));
 }
 
-// Vulnerability-scanner noise. Bots constantly probe for exposed secrets, VCS
-// metadata, WordPress, debug endpoints, etc. These paths don't exist here, so
-// they'd fall through to Astro SSR and 404 — but Cloudflare's observability
-// still classifies the pattern and files "Potential vulnerability scan" issues
-// that bury real errors. Short-circuit them with a cheap 404 before any SSR or
-// backend work so they never generate an issue or burn a D1 query.
-const SCANNER_PATTERNS: RegExp[] = [
-  // WordPress
-  /^\/wp[-/]/i,                    // /wp-login.php, /wp-admin, /wp-content, /wp/...
-  /\/wp-(admin|login|content|includes|json|config)/i,
-  /^\/(wordpress|xmlrpc\.php|wlwmanifest\.xml)/i,
-  // Source-control metadata
-  /^\/(\.git|\.svn|\.hg|\.bzr)(\/|$)/i,
-  // Env / secret files (and common variants seen in the wild)
-  /(^|\/)\.env(\.|$|\/)/i,         // /.env, /.env.save, /.env.local, /dashboard/.env
-  /(^|\/)\.dockerenv(\/|$)/i,
-  /(^|\/)(secrets?|credentials?)\.(env|ya?ml|json|txt|cfg|ini)$/i,
-  /(^|\/)(env|config|settings)\.(js|json|ya?ml|php|txt|bak)$/i,
-  /(^|\/)[a-z0-9_-]*service[-_]?account[-_a-z0-9]*\.json$/i, // firebase/gcp service-account json
-  /(^|\/)(gcp|aws|azure|google|firebase)[-_][a-z0-9]*\.(json|pem|key)$/i,
-  /^\/\.(aws|ssh|docker|config|vscode|idea)(\/|$)/i,
-  /(^|\/)(id_rsa|id_dsa|\.htpasswd|\.htaccess)(\/|$|$)/i,
-  // Config / admin / debug probes
-  /^\/(console|manage|admin|adminer|phpmyadmin|pma)(\/|$)/i,
-  /^\/(debug|actuator|telescope|_debugbar|server-status|server-info)(\/|$)/i,
-  /^\/\.well-known\/(?!.*(?:security\.txt$|assetlinks\.json$|apple-app))/i, // odd .well-known probes
-  // Server-scripting extensions we never serve
-  /\.(php\d?|phtml|asp|aspx|jsp|jspx|cgi|pl|cfm)(\/|$|\?)/i,
-  /^\/(cgi-bin|vendor\/phpunit)/i,
-  // Path-traversal attempts (encoded or raw)
-  /(\.\.(%2f|\/)){2,}/i,
-  /%2e%2e(%2f|\/)/i,
-];
-
-function isScannerPath(pathname: string): boolean {
-  // Test both the raw and percent-decoded path so encoded traversal/secret
-  // probes (e.g. %2F.env, ..%2f..) are caught too.
-  let decoded = pathname;
-  try { decoded = decodeURIComponent(pathname); } catch { /* malformed % — keep raw */ }
-  return SCANNER_PATTERNS.some((re) => re.test(pathname) || re.test(decoded));
-}
+// NOTE: vulnerability-scanner probes (/wp-*, /.env, service-account json,
+// path traversal, etc.) are blocked at the edge by a free-tier WAF custom rule
+// ("Block vulnerability-scanner probe paths"), configured via
+// .github/workflows/waf-setup.yml. Blocking at the WAF stops the request before
+// it reaches this Worker, so it never burns a D1 query or files an
+// observability issue — and there's no scanner pattern list to maintain here.
 
 // Astro's Cloudflare adapter builds a Worker whose responses are NOT
 // automatically stored in Cloudflare's CDN cache — a Worker fetch response
@@ -118,14 +83,6 @@ export default {
     }
 
     const { pathname } = new URL(safeRequest.url);
-    // Drop vulnerability-scanner probes early with a plain 404 — before SSR,
-    // backend, or cache work — so they don't file observability issues.
-    if (isScannerPath(pathname)) {
-      return new Response('Not Found', {
-        status: 404,
-        headers: { 'content-type': 'text/plain; charset=utf-8', 'x-robots-tag': 'noindex' },
-      });
-    }
     if (isApiRequest(pathname)) {
       return backend.fetch(safeRequest, env, ctx);
     }

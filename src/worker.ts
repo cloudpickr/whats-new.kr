@@ -19,6 +19,29 @@ function isApiRequest(pathname: string): boolean {
   return API_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));
 }
 
+// Vulnerability-scanner noise. Bots constantly probe for exposed secrets, VCS
+// metadata, WordPress, debug endpoints, etc. These paths don't exist here, so
+// they'd fall through to Astro SSR and 404 — but Cloudflare's observability
+// still classifies the pattern and files "Potential vulnerability scan" issues
+// that bury real errors. Short-circuit them with a cheap 404 before any SSR or
+// backend work so they never generate an issue or burn a D1 query.
+const SCANNER_PATTERNS: RegExp[] = [
+  /^\/wp-/i,                       // wordpress: /wp-login.php, /wp-admin, /wp-content
+  /\/wp-(admin|login|content|includes|json)/i,
+  /^\/(\.git|\.svn|\.hg)(\/|$)/i,  // source-control metadata
+  /^\/\.env/i,                     // secret files: .env, .env.local
+  /^\/\.(aws|ssh|docker|config)(\/|$)/i,
+  /\/(id_rsa|id_dsa|\.htpasswd|\.htaccess|credentials|secrets?\.(ya?ml|json|txt))$/i,
+  /^\/(phpmyadmin|pma|adminer|xmlrpc\.php|wlwmanifest\.xml)/i,
+  /^\/(debug|actuator|telescope|_debugbar|server-status|server-info)(\/|$)/i,
+  /\.(php|asp|aspx|jsp|cgi)$/i,    // we serve no server-scripting pages
+  /^\/(cgi-bin|vendor\/phpunit|\.well-known\/security\.txt\.bak)/i,
+];
+
+function isScannerPath(pathname: string): boolean {
+  return SCANNER_PATTERNS.some((re) => re.test(pathname));
+}
+
 // Astro's Cloudflare adapter builds a Worker whose responses are NOT
 // automatically stored in Cloudflare's CDN cache — a Worker fetch response
 // bypasses the edge cache unless we explicitly use the Cache API. Page routes
@@ -76,6 +99,14 @@ export default {
     }
 
     const { pathname } = new URL(safeRequest.url);
+    // Drop vulnerability-scanner probes early with a plain 404 — before SSR,
+    // backend, or cache work — so they don't file observability issues.
+    if (isScannerPath(pathname)) {
+      return new Response('Not Found', {
+        status: 404,
+        headers: { 'content-type': 'text/plain; charset=utf-8', 'x-robots-tag': 'noindex' },
+      });
+    }
     if (isApiRequest(pathname)) {
       return backend.fetch(safeRequest, env, ctx);
     }

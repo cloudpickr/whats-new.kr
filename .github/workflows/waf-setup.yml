@@ -94,6 +94,11 @@ jobs:
               ".php", ".env", ".git", "/wp-", "/wp/", "wordpress",
               "/.aws", "/.ssh", ".dockerenv", "phpmyadmin", "/console",
               "xmlrpc", "service-account", "secrets.", "/cgi-bin",
+              # debug-endpoints family (previously only in the Worker; was
+              # leaking through WAF -> kept re-opening the debug-endpoints issue)
+              "/debug", "/actuator", "/telescope", "_debugbar",
+              "server-status", "server-info", "/.svn", "/.hg",
+              "/vendor/", "/adminer", "/.vscode", "/.idea",
           ])
           rule = {
               "action": "block",

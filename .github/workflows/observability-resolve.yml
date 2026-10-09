@@ -1,0 +1,99 @@
+name: Observability — resolve issues (manual)
+
+# Manually resolve Workers Observability issues via the official API:
+#   PATCH /accounts/{acct}/workers/observability/issues/{id} {"status":"resolved"}
+# Requires CLOUDFLARE_API_TOKEN to have "Workers Observability (Write)".
+#
+# Modes (workflow_dispatch input `mode`):
+#   list    — list active issues only (no changes). Default.
+#   resolve — resolve the issues whose IDs are given in `ids` (comma-separated),
+#             or ALL active issues if `ids` is empty and `confirm_all` = "yes".
+#
+# This is the manual counterpart to the automated detect->issue->close flow;
+# use it to clear the current backlog or to resolve a specific issue by ID.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'list | resolve'
+        required: true
+        default: 'list'
+        type: choice
+        options: [list, resolve]
+      ids:
+        description: 'Comma-separated issue IDs to resolve (resolve mode)'
+        required: false
+        type: string
+      confirm_all:
+        description: 'Type "yes" to resolve ALL active issues when ids is empty'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      MODE: ${{ github.event.inputs.mode }}
+      IDS: ${{ github.event.inputs.ids }}
+      CONFIRM_ALL: ${{ github.event.inputs.confirm_all }}
+    steps:
+      - name: List / resolve issues
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request, urllib.error
+
+          token = os.environ["CF_TOKEN"]
+          account = os.environ["CF_ACCOUNT"]
+          mode = (os.environ.get("MODE") or "list").strip()
+          ids_in = [x.strip() for x in (os.environ.get("IDS") or "").split(",") if x.strip()]
+          confirm_all = (os.environ.get("CONFIRM_ALL") or "").strip().lower() == "yes"
+          base = f"https://api.cloudflare.com/client/v4/accounts/{account}/workers/observability/issues"
+
+          def call(method, url, body=None):
+              data = json.dumps(body).encode() if body is not None else None
+              req = urllib.request.Request(url, data=data, method=method,
+                  headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+              try:
+                  with urllib.request.urlopen(req) as r:
+                      return r.status, json.loads(r.read().decode("utf-8", "replace"))
+              except urllib.error.HTTPError as e:
+                  return e.code, {"raw": e.read().decode("utf-8", "replace")}
+
+          # List active issues
+          code, data = call("GET", base + "?status=active&limit=200")
+          if code != 200 or not isinstance(data, dict) or not data.get("success", False):
+              print(f"List failed: HTTP {code}: {json.dumps(data)[:500]}")
+              raise SystemExit(1)
+          issues = data.get("result") or []
+          print(f"Active issues: {len(issues)}")
+          for it in issues:
+              print(f"  {it.get('id')}  events={it.get('count','?')}  {str(it.get('title',''))[:70]}")
+
+          if mode != "resolve":
+              print("\nmode=list; no changes made.")
+              raise SystemExit(0)
+
+          targets = ids_in if ids_in else ([it.get("id") for it in issues] if confirm_all else [])
+          if not targets:
+              print("\nresolve mode but no ids and confirm_all!='yes' — nothing to do.")
+              raise SystemExit(0)
+
+          print(f"\nResolving {len(targets)} issue(s)...")
+          ok = fail = 0
+          for iid in targets:
+              c, d = call("PATCH", f"{base}/{iid}", {"status": "resolved"})
+              success = c == 200 and isinstance(d, dict) and d.get("success", False)
+              print(f"  PATCH {iid} -> {c} {'OK' if success else 'FAIL ' + json.dumps(d)[:200]}")
+              ok += 1 if success else 0
+              fail += 0 if success else 1
+          print(f"\nResolved {ok}, failed {fail}.")
+          if fail:
+              raise SystemExit(1)
+          PY

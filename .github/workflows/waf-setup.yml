@@ -111,7 +111,8 @@ jobs:
               "expression": scanner_expr,
               "enabled": True,
           }
-          # Append to the custom entrypoint via PUT (replace rules = existing + new).
+          # Append to the custom entrypoint via PUT. PUT on the phase entrypoint
+          # creates the ruleset if it does not exist yet (404 on GET is fine).
           c, d = call("GET", f"/zones/{zid}/rulesets/phases/http_request_firewall_custom/entrypoint")
           existing = d.get("result", {}).get("rules", []) if c == 200 else []
           # avoid duplicate by description
@@ -123,7 +124,7 @@ jobs:
           clean.append(rule)
           c, d = call("PUT", f"/zones/{zid}/rulesets/phases/http_request_firewall_custom/entrypoint",
                       {"rules": clean})
-          print(f"\nPUT custom rules -> HTTP {c}: {'OK' if d.get('success') else json.dumps(d)[:400]}")
+          print(f"\nPUT custom rules -> HTTP {c}: {'OK' if d.get('success') else json.dumps(d)[:500]}")
 
           # Enable Free Managed Ruleset (deploy managed ruleset in managed phase).
           # Free Managed Ruleset id is a well-known constant.

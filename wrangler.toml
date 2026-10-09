@@ -40,6 +40,12 @@ dead_letter_queue = "cloud-whats-new-translation-jobs-dlq"
 enabled = true
 head_sampling_rate = 1
 
+# Issues: built-in error monitoring that groups uncaught exceptions / failed
+# invocations / 5xx / error logs into issues (Wrangler 4.134+). Enables the
+# detect->GitHub-issue->fix->close automation (.github/workflows/observability-*).
+[observability.issues]
+enabled = true
+
 [triggers]
 crons = ["*/1 * * * *"]
 

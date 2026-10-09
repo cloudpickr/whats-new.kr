@@ -1,0 +1,143 @@
+name: Observability — detect & file issues
+
+# [A] detect -> GitHub issue. Polls Cloudflare Workers Observability for active
+# issues and mirrors each new one into a GitHub issue (label: cf-observability).
+# De-dupes by embedding the Cloudflare issue id in the GitHub issue body and
+# searching for it before creating. The GitHub issue is the unit of work:
+#   - a fix PR closes it with "Fixes #<n>"  (GitHub native)
+#   - closing it triggers observability-resolve-on-close.yml, which PATCHes the
+#     Cloudflare issue to status=resolved  [C]
+#
+# Scanner-noise issues (handled at the edge in src/worker.ts) are skipped so we
+# don't file GitHub issues for bot probes.
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'   # every 30 min
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: observability-detect
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Mirror active CF issues into GitHub issues
+        run: |
+          python3 - <<'PY'
+          import json, os, re, urllib.request, urllib.error, urllib.parse
+
+          cf_token = os.environ["CF_TOKEN"]
+          account = os.environ["CF_ACCOUNT"]
+          gh_token = os.environ["GH_TOKEN"]
+          repo = os.environ["GH_REPO"]
+          cf_base = f"https://api.cloudflare.com/client/v4/accounts/{account}/workers/observability/issues"
+
+          def cf(method, url):
+              req = urllib.request.Request(url, method=method,
+                  headers={"Authorization": f"Bearer {cf_token}", "Content-Type": "application/json"})
+              try:
+                  with urllib.request.urlopen(req) as r:
+                      return r.status, json.loads(r.read().decode("utf-8", "replace"))
+              except urllib.error.HTTPError as e:
+                  return e.code, {"raw": e.read().decode("utf-8", "replace")}
+
+          def gh(method, path, body=None):
+              data = json.dumps(body).encode() if body is not None else None
+              req = urllib.request.Request("https://api.github.com" + path, data=data, method=method,
+                  headers={"Authorization": f"Bearer {gh_token}", "Accept": "application/vnd.github+json",
+                           "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "obs-detect"})
+              try:
+                  with urllib.request.urlopen(req) as r:
+                      return r.status, json.loads(r.read().decode("utf-8", "replace"))
+              except urllib.error.HTTPError as e:
+                  return e.code, {"raw": e.read().decode("utf-8", "replace")}
+
+          # Scanner noise is blocked at the edge (src/worker.ts); don't mirror it.
+          SKIP = re.compile(r"vulnerability scan|known-scanner-path", re.I)
+
+          code, data = cf("GET", cf_base + "?status=active&limit=200")
+          if code != 200 or not data.get("success", False):
+              print(f"CF list failed: {code} {json.dumps(data)[:400]}")
+              raise SystemExit(1)
+          issues = data.get("result") or []
+          print(f"CF active issues: {len(issues)}")
+
+          created = skipped = existing = 0
+          for it in issues:
+              cid = it.get("id")
+              title = str(it.get("title", "")).strip() or "(untitled issue)"
+              if SKIP.search(title):
+                  skipped += 1
+                  continue
+              # De-dupe: search existing GitHub issues (open OR closed) for the cf id marker.
+              marker = f"cf-issue-id: {cid}"
+              q = urllib.parse.quote(f'repo:{repo} in:body "{marker}"')
+              sc, sr = gh("GET", f"/search/issues?q={q}")
+              if sc == 200 and sr.get("total_count", 0) > 0:
+                  existing += 1
+                  continue
+              count = it.get("count", "?")
+              first_seen = it.get("firstSeen") or it.get("first_seen") or ""
+              last_seen = it.get("lastSeen") or it.get("last_seen") or ""
+              dash = (f"https://dash.cloudflare.com/{account}/workers/services/view/"
+                      f"cloud-whats-new/production/issues/{cid}")
+              body = (
+                  f"Auto-filed from Cloudflare Workers Observability.\n\n"
+                  f"- **CF issue**: [{cid}]({dash})\n"
+                  f"- **Occurrences**: {count}\n"
+                  f"- **First seen**: {first_seen}\n"
+                  f"- **Last seen**: {last_seen}\n\n"
+                  f"Fix the underlying error, then close this issue with a PR using "
+                  f"`Fixes #<n>`. Closing it will auto-resolve the Cloudflare issue.\n\n"
+                  f"<!-- cf-issue-id: {cid} -->\n"
+                  f"cf-issue-id: {cid}\n"
+              )
+              cc, cr = gh("POST", f"/repos/{repo}/issues", {
+                  "title": f"[obs] {title[:120]}",
+                  "body": body,
+                  "labels": ["cf-observability"],
+              })
+              if cc in (200, 201):
+                  print(f"  created GH #{cr.get('number')} for CF {cid}")
+                  created += 1
+              else:
+                  print(f"  FAILED to create for CF {cid}: {cc} {json.dumps(cr)[:200]}")
+          print(f"\nSummary: created={created}, already-existing={existing}, scanner-skipped={skipped}")
+
+          # [B] Auto-verify: close open cf-observability GitHub issues whose CF
+          # issue is no longer active (fix held — no recurrence). Build the set
+          # of currently-active CF ids, then scan open GH issues with our label.
+          active_ids = {it.get("id") for it in issues}
+          sc, sr = gh("GET",
+              f"/repos/{repo}/issues?state=open&labels=cf-observability&per_page=100")
+          verified = 0
+          if sc == 200 and isinstance(sr, list):
+              for gi in sr:
+                  gbody = gi.get("body") or ""
+                  gm = re.search(r"cf-issue-id:\s*([0-9a-f-]{8,})", gbody)
+                  if not gm:
+                      continue
+                  if gm.group(1) in active_ids:
+                      continue  # still recurring; leave open
+                  n = gi.get("number")
+                  gh("POST", f"/repos/{repo}/issues/{n}/comments",
+                     {"body": "✅ Cloudflare issue no longer active (no recurrence). "
+                              "Auto-closing; the resolve-on-close workflow will mark the "
+                              "CF issue resolved."})
+                  gh("PATCH", f"/repos/{repo}/issues/{n}", {"state": "closed"})
+                  print(f"  verified+closed GH #{n} (CF {gm.group(1)} inactive)")
+                  verified += 1
+          print(f"Auto-verified (closed, no recurrence): {verified}")
+          PY

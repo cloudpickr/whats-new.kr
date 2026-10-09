@@ -1,0 +1,118 @@
+name: WAF rate limiting (manual)
+
+# Add a conservative free-tier rate-limiting rule: if a single IP exceeds
+# 50 requests in 10s, block it for a short period (429). Thresholds are set
+# well above any legitimate pattern:
+#   - cron is an internal trigger (not external HTTP) -> never counted
+#   - SSR->backend is in-process (not HTTP)           -> never counted
+#   - MCP eval/agents are low-frequency, well under 50 req / 10s
+#   - a human browsing a few pages is nowhere near 50 req / 10s
+# The rule is scoped to NOT count /api/* and /mcp so our programmatic callers
+# are never rate-limited; only page/asset flooding from one IP is mitigated.
+#
+# mode=probe (default): read-only. mode=apply: create/replace the rule.
+# Needs CLOUDFLARE_API_TOKEN with Zone.WAF (+ Zone read).
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'probe | apply'
+        required: true
+        default: 'probe'
+        type: choice
+        options: [probe, apply]
+      threshold:
+        description: 'requests per period (default 50)'
+        required: false
+        default: '50'
+        type: string
+      period:
+        description: 'period seconds: 10 or 60 (default 10)'
+        required: false
+        default: '10'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  ratelimit:
+    runs-on: ubuntu-latest
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      MODE: ${{ github.event.inputs.mode }}
+      THRESHOLD: ${{ github.event.inputs.threshold }}
+      PERIOD: ${{ github.event.inputs.period }}
+      ZONE_NAME: whats-new.kr
+    steps:
+      - name: Configure rate limiting
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request, urllib.error
+
+          token = os.environ["CF_TOKEN"]
+          mode = (os.environ.get("MODE") or "probe").strip()
+          threshold = int(os.environ.get("THRESHOLD") or "50")
+          period = int(os.environ.get("PERIOD") or "10")
+          if period not in (10, 60):
+              period = 10
+          zone_name = os.environ["ZONE_NAME"]
+          api = "https://api.cloudflare.com/client/v4"
+
+          def call(method, path, body=None):
+              data = json.dumps(body).encode() if body is not None else None
+              req = urllib.request.Request(api + path, data=data, method=method,
+                  headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+              try:
+                  with urllib.request.urlopen(req) as r:
+                      return r.status, json.loads(r.read().decode("utf-8", "replace"))
+              except urllib.error.HTTPError as e:
+                  try: return e.code, json.loads(e.read().decode("utf-8", "replace"))
+                  except Exception: return e.code, {"raw": "non-json"}
+
+          c, d = call("GET", f"/zones?name={zone_name}")
+          if c != 200 or not d.get("result"):
+              print(f"zone lookup failed: {c} {json.dumps(d)[:300]}"); raise SystemExit(1)
+          zid = d["result"][0]["id"]
+          print(f"zone {zone_name} -> {zid}")
+
+          c, d = call("GET", f"/zones/{zid}/rulesets/phases/http_ratelimit/entrypoint")
+          print(f"ratelimit entrypoint: HTTP {c}")
+          existing = d.get("result", {}).get("rules", []) if c == 200 else []
+          for r in existing:
+              print(f"  existing: {r.get('description','')[:50]} action={r.get('action')}")
+
+          if mode != "apply":
+              print("\nmode=probe; no changes.")
+              raise SystemExit(0)
+
+          desc = "Per-IP flood protection (pages/assets)"
+          rule = {
+              "description": desc,
+              "action": "block",
+              # Count only page/asset traffic from the same IP; exclude our
+              # programmatic endpoints so MCP/API callers are never limited.
+              "expression": 'not (starts_with(http.request.uri.path, "/api/") or starts_with(http.request.uri.path, "/mcp"))',
+              "ratelimit": {
+                  "characteristics": ["ip.src", "cf.colo.id"],
+                  "period": period,
+                  "requests_per_period": threshold,
+                  "mitigation_timeout": 60,
+              },
+              "enabled": True,
+          }
+          clean = []
+          for r in existing:
+              if r.get("description") == desc:
+                  continue
+              rl = {k: r[k] for k in ("description","action","expression","enabled") if k in r}
+              if "ratelimit" in r: rl["ratelimit"] = r["ratelimit"]
+              clean.append(rl)
+          clean.append(rule)
+          c, d = call("PUT", f"/zones/{zid}/rulesets/phases/http_ratelimit/entrypoint",
+                      {"rules": clean})
+          ok = c == 200 and d.get("success")
+          print(f"\nPUT ratelimit rule ({threshold} req / {period}s, block 60s) -> "
+                f"{'OK' if ok else f'HTTP {c} ' + json.dumps(d)[:400]}")
+          PY

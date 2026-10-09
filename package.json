@@ -21,6 +21,6 @@
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
     "tailwindcss": "^4.3.3",
-    "wrangler": "^4.147.0"
+    "wrangler": "^4.149.0"
   }
 }

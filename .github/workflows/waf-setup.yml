@@ -86,24 +86,14 @@ jobs:
               raise SystemExit(0)
 
           # ---- apply ----
-          # Free tier: no regex. Block common scanner paths using wildcard matches
-          # on lower(http.request.uri.path). One custom rule, OR-combined.
-          scanner_expr = " or ".join([
-              'http.request.uri.path.lower contains ".php"',
-              'http.request.uri.path.lower contains ".env"',
-              'http.request.uri.path.lower contains ".git"',
-              'http.request.uri.path.lower contains "/wp-"',
-              'http.request.uri.path.lower contains "/wp/"',
-              'http.request.uri.path.lower contains "wordpress"',
-              'http.request.uri.path.lower contains "/.aws"',
-              'http.request.uri.path.lower contains "/.ssh"',
-              'http.request.uri.path.lower contains ".dockerenv"',
-              'http.request.uri.path.lower contains "phpmyadmin"',
-              'http.request.uri.path.lower contains "/console"',
-              'http.request.uri.path.lower contains "xmlrpc"',
-              'http.request.uri.path.lower contains "service-account"',
-              'http.request.uri.path.lower contains "secrets."',
-              'http.request.uri.path.lower contains "/cgi-bin"',
+          # Free tier: no regex. Block common scanner paths using contains on
+          # lower(http.request.uri.path). One custom rule, OR-combined.
+          def pcontains(s):
+              return f'lower(http.request.uri.path) contains "{s}"'
+          scanner_expr = " or ".join(pcontains(s) for s in [
+              ".php", ".env", ".git", "/wp-", "/wp/", "wordpress",
+              "/.aws", "/.ssh", ".dockerenv", "phpmyadmin", "/console",
+              "xmlrpc", "service-account", "secrets.", "/cgi-bin",
           ])
           rule = {
               "action": "block",
@@ -126,14 +116,35 @@ jobs:
                       {"rules": clean})
           print(f"\nPUT custom rules -> HTTP {c}: {'OK' if d.get('success') else json.dumps(d)[:500]}")
 
-          # Enable Free Managed Ruleset (deploy managed ruleset in managed phase).
-          # Free Managed Ruleset id is a well-known constant.
-          FREE_MANAGED = "4814384a9e5d4991b9815dcfc25d2f1f"
-          c, d = call("PUT", f"/zones/{zid}/rulesets/phases/http_request_firewall_managed/entrypoint",
-                      {"rules": [{"action": "execute",
-                                  "action_parameters": {"id": FREE_MANAGED},
-                                  "expression": "true",
-                                  "enabled": True,
-                                  "description": "Cloudflare Free Managed Ruleset"}]})
-          print(f"Enable Free Managed Ruleset -> HTTP {c}: {'OK' if d.get('success') else json.dumps(d)[:400]}")
+          # Enable Free Managed Ruleset. The id differs per account/entitlement,
+          # so discover it from the account's available managed rulesets instead
+          # of hardcoding. Look for the Cloudflare-managed "free" ruleset.
+          c, d = call("GET", f"/accounts/{account}/rulesets?per_page=100")
+          free_id = None
+          if c == 200:
+              for rs in d.get("result", []):
+                  name = (rs.get("name") or "").lower()
+                  if rs.get("kind") == "managed" and ("free" in name):
+                      free_id = rs.get("id")
+                      print(f"Found managed ruleset: {rs.get('name')} -> {free_id}")
+                      break
+              if not free_id:
+                  print("Available managed rulesets:")
+                  for rs in d.get("result", []):
+                      if rs.get("kind") == "managed":
+                          print(f"  {rs.get('id')}  {rs.get('name')}")
+          else:
+              print(f"Could not list account rulesets: HTTP {c} {json.dumps(d)[:200]}")
+
+          if free_id:
+              c, d = call("PUT", f"/zones/{zid}/rulesets/phases/http_request_firewall_managed/entrypoint",
+                          {"rules": [{"action": "execute",
+                                      "action_parameters": {"id": free_id},
+                                      "expression": "true",
+                                      "enabled": True,
+                                      "description": "Cloudflare Free Managed Ruleset"}]})
+              print(f"Enable Free Managed Ruleset -> HTTP {c}: {'OK' if d.get('success') else json.dumps(d)[:400]}")
+          else:
+              print("Free Managed Ruleset id not found; skipping managed-ruleset enable "
+                    "(enable it once in the dashboard: Security > WAF > Managed rules).")
           PY

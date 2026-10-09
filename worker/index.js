@@ -33,6 +33,32 @@ function sourceOnlyCspExclusionSql(alias = 'a') {
 
 const PRIMARY_MODEL = '@cf/zai-org/glm-4.7-flash';
 const REVIEW_MODEL = '@cf/meta/llama-3.1-8b-instruct-fp8';
+// Fallback model for transient inference errors (e.g. "triton error running
+// inference"). Picked for broad availability/stability; used only when the
+// primary call throws a retryable inference error.
+const FALLBACK_MODEL = '@cf/meta/llama-3.1-8b-instruct-fp8';
+const FALLBACK_MODEL_ALT = '@cf/mistralai/mistral-small-3.1-24b-instruct';
+
+// Transient Workers AI inference failures (triton/backend hiccups, timeouts,
+// capacity) should not fail the whole job — retry once on a different model.
+function isTransientInferenceError(err) {
+  const m = ((err && err.message) || String(err || '')).toLowerCase();
+  return /triton|inference|timeout|capacity|unavailable|overloaded|5\d\d|aborted|network/.test(m);
+}
+
+// Run a Workers AI model, falling back to a different model once if the first
+// call throws a transient inference error. Keeps a single bad backend from
+// turning into a stuck/erroring queue job.
+async function runAIWithFallback(env, model, options) {
+  try {
+    return await env.AI.run(model, options);
+  } catch (err) {
+    if (!isTransientInferenceError(err)) throw err;
+    const fallback = model === FALLBACK_MODEL ? FALLBACK_MODEL_ALT : FALLBACK_MODEL;
+    console.warn(`AI inference failed on ${model} (${(err && err.message) || err}); retrying on ${fallback}`);
+    return await env.AI.run(fallback, options);
+  }
+}
 
 // Translation/review model IDs are runtime-overridable so a biweekly model
 // evaluation (see scripts/model-eval.mjs + .github/workflows/model-eval.yml)
@@ -1359,7 +1385,7 @@ If you cannot find any real errors after thorough review, output: {"pass":true}`
 
   const reviewPromptWithHint = hint ? `${reviewPrompt}\n\n=== 추가 지시 ===\n${hint}` : reviewPrompt;
   try {
-    const aiResp = await env.AI.run(getReviewModel(env), {
+    const aiResp = await runAIWithFallback(env, getReviewModel(env), {
       messages: [{ role: 'system', content: reviewPromptWithHint }, { role: 'user', content: reviewInput }],
       max_tokens: lang === 'ko' ? 640 : 384, temperature: 0.1,
     });
@@ -1524,7 +1550,7 @@ async function buildTranslationRecord(env, row, lang, hint = '', model = PRIMARY
   const sysPromptWithHint = hint ? `${sysPrompt}\n\n=== 용어 사전 ===\n${hint}` : sysPrompt;
   const fewShot = lang === 'en' ? FEW_SHOT_EN : lang === 'ja' ? FEW_SHOT_JA : FEW_SHOT_KO;
 
-  const aiResp = await env.AI.run(model, {
+  const aiResp = await runAIWithFallback(env, model, {
     messages: [{ role: 'system', content: sysPromptWithHint }, ...fewShot, { role: 'user', content: userMsg }],
     response_format: TRANSLATION_JSON_SCHEMA,
     max_tokens: 4096, temperature: 0.1,

@@ -1,0 +1,83 @@
+name: Observability — inspect recent error events (manual)
+
+# Query recent Workers Observability events (last 24h) that are errors/5xx or
+# flagged as scanner probes, and print their request URLs — so we can see which
+# exact paths a "Potential vulnerability scan" issue came from and extend the
+# edge scanner-block pattern accordingly. Read-only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      needle:
+        description: 'Full-text search needle (e.g. wordpress, wp, .php)'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      NEEDLE: ${{ github.event.inputs.needle }}
+    steps:
+      - name: Query recent events
+        run: |
+          python3 - <<'PY'
+          import json, os, time, urllib.request, urllib.error
+
+          token = os.environ["CF_TOKEN"]; account = os.environ["CF_ACCOUNT"]
+          needle = (os.environ.get("NEEDLE") or "").strip()
+          now = int(time.time() * 1000); frm = now - 24*60*60*1000
+          url = f"https://api.cloudflare.com/client/v4/accounts/{account}/workers/observability/telemetry/query"
+
+          params = {
+              "datasets": ["cloudflare-workers"],
+              "filters": [
+                  {"key": "$metadata.service", "operation": "eq", "type": "string", "value": "cloud-whats-new"},
+              ],
+          }
+          if needle:
+              params["needle"] = {"value": needle, "isRegex": False, "matchCase": False}
+          body = {
+              "queryId": "inspect-adhoc",
+              "timeframe": {"from": frm, "to": now},
+              "parameters": params,
+              "view": "events",
+              "limit": 50,
+          }
+          req = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST",
+              headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+          try:
+              with urllib.request.urlopen(req) as r:
+                  data = json.loads(r.read().decode("utf-8", "replace"))
+          except urllib.error.HTTPError as e:
+              print("HTTP", e.code, e.read().decode("utf-8", "replace")[:500]); raise SystemExit(1)
+
+          events = (((data.get("result") or {}).get("events") or {}).get("events")) or []
+          print(f"events returned: {len(events)}")
+          seen = {}
+          for ev in events:
+              src = ev.get("source")
+              w = ev.get("$workers") or {}
+              # try to surface the request URL / message
+              msg = ""
+              if isinstance(src, dict):
+                  msg = src.get("message") or src.get("url") or json.dumps(src)[:200]
+              else:
+                  msg = str(src)[:200]
+              evt = w.get("event") or {}
+              req_url = ""
+              if isinstance(evt, dict):
+                  rq = evt.get("request") or {}
+                  req_url = rq.get("url", "") if isinstance(rq, dict) else ""
+              key = req_url or msg
+              seen[key] = seen.get(key, 0) + 1
+          print("--- distinct request URLs / messages (count) ---")
+          for k, c in sorted(seen.items(), key=lambda x: -x[1])[:40]:
+              print(f"  {c:4}  {k[:160]}")
+          PY

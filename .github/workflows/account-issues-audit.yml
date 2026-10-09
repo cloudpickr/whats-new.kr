@@ -45,6 +45,34 @@ jobs:
               print(f"  - {s}")
           print()
 
+          # 1b) Per-worker observability setting + a telemetry error probe, so a
+          # "0 issues" result isn't just because observability is disabled.
+          import time
+          now = int(time.time() * 1000); frm = now - 7*24*60*60*1000
+          print("=== per-worker observability + 7d error probe ===")
+          for s in scripts:
+              c, d = call("GET", f"/accounts/{account}/workers/scripts/{s}/settings")
+              obs = "?"
+              if c == 200:
+                  o = (d.get("result") or {}).get("observability") or {}
+                  obs = f"enabled={o.get('enabled')}" if o else "none/null"
+              # count error-ish events in last 7d for this service
+              q = {"queryId": "audit", "timeframe": {"from": frm, "to": now},
+                   "parameters": {"datasets": ["cloudflare-workers"],
+                       "filters": [{"key": "$metadata.service", "operation": "eq", "type": "string", "value": s}],
+                       "calculations": [{"operator": "count", "alias": "n"}]},
+                   "view": "calculations", "limit": 1}
+              c2, d2 = call("POST", f"/accounts/{account}/workers/observability/telemetry/query", q)
+              total = "?"
+              if c2 == 200:
+                  try:
+                      cals = (d2.get("result") or {}).get("calculations") or []
+                      total = cals[0]["aggregates"][0]["value"] if cals else 0
+                  except Exception:
+                      total = "n/a"
+              print(f"  {s}: observability {obs}; 7d events={total}")
+          print()
+
           # 2) All active issues account-wide (no service filter).
           c, d = call("GET", "/accounts/%s/workers/observability/issues?status=active&limit=200" % account)
           if c != 200 or not d.get("success"):

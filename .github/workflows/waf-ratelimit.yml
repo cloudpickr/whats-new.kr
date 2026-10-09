@@ -102,7 +102,7 @@ jobs:
                   "characteristics": ["ip.src", "cf.colo.id"],
                   "period": period,
                   "requests_per_period": threshold,
-                  "mitigation_timeout": 60,
+                  "mitigation_timeout": period,
               },
               "enabled": True,
           }
@@ -113,6 +113,6 @@ jobs:
           c, d = call("PUT", f"/zones/{zid}/rulesets/phases/http_ratelimit/entrypoint",
                       {"rules": clean})
           ok = c == 200 and d.get("success")
-          print(f"\nPUT ratelimit rule ({threshold} req / {period}s, block 60s) -> "
+          print(f"\nPUT ratelimit rule ({threshold} req / {period}s, block period) -> "
                 f"{'OK' if ok else f'HTTP {c} ' + json.dumps(d)[:400]}")
           PY

@@ -60,24 +60,27 @@ jobs:
 
           events = (((data.get("result") or {}).get("events") or {}).get("events")) or []
           print(f"events returned: {len(events)}")
-          seen = {}
+          import datetime as _dt
+          rows = []
           for ev in events:
               src = ev.get("source")
               w = ev.get("$workers") or {}
-              # try to surface the request URL / message
               msg = ""
               if isinstance(src, dict):
-                  msg = src.get("message") or src.get("url") or json.dumps(src)[:200]
+                  msg = src.get("message") or src.get("url") or json.dumps(src)[:160]
               else:
-                  msg = str(src)[:200]
+                  msg = str(src)[:160]
               evt = w.get("event") or {}
               req_url = ""
               if isinstance(evt, dict):
                   rq = evt.get("request") or {}
                   req_url = rq.get("url", "") if isinstance(rq, dict) else ""
-              key = req_url or msg
-              seen[key] = seen.get(key, 0) + 1
-          print("--- distinct request URLs / messages (count) ---")
-          for k, c in sorted(seen.items(), key=lambda x: -x[1])[:40]:
-              print(f"  {c:4}  {k[:160]}")
+              ts = ev.get("timestamp")
+              tstr = ""
+              if isinstance(ts, (int, float)):
+                  tstr = _dt.datetime.utcfromtimestamp(ts/1000).strftime("%Y-%m-%d %H:%M:%SZ")
+              rows.append((tstr, req_url or msg))
+          print("--- recent events (UTC time, url) ---")
+          for tstr, u in sorted(rows, reverse=True)[:40]:
+              print(f"  {tstr}  {u[:140]}")
           PY

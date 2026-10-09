@@ -1,14 +1,15 @@
 name: WAF rate limiting (manual)
 
-# Add a conservative free-tier rate-limiting rule: if a single IP exceeds
-# 50 requests in 10s, block it for a short period (429). Thresholds are set
-# well above any legitimate pattern:
+# Add a conservative free-tier rate-limiting rule protecting /mcp from token
+# brute-force and flooding: if a single IP exceeds 30 requests in 10s to /mcp,
+# block it for 60s (429). Thresholds sit far above our own usage:
 #   - cron is an internal trigger (not external HTTP) -> never counted
 #   - SSR->backend is in-process (not HTTP)           -> never counted
-#   - MCP eval/agents are low-frequency, well under 50 req / 10s
-#   - a human browsing a few pages is nowhere near 50 req / 10s
-# The rule is scoped to NOT count /api/* and /mcp so our programmatic callers
-# are never rate-limited; only page/asset flooding from one IP is mitigated.
+#   - MCP callers (cloudpick-docs eval ~9 reqs biweekly; multi-agent intermittent)
+#     are nowhere near 30 req / 10s per IP
+# Only /mcp is counted, so page/asset traffic is never limited. Free tier allows
+# a single rate-limit rule, so this replaces the default "Leaked credential
+# check" (which only applies to password login forms this site doesn't have).
 #
 # mode=probe (default): read-only. mode=apply: create/replace the rule.
 # Needs CLOUDFLARE_API_TOKEN with Zone.WAF (+ Zone read).
@@ -23,9 +24,9 @@ on:
         type: choice
         options: [probe, apply]
       threshold:
-        description: 'requests per period (default 50)'
+        description: 'requests per period (default 30)'
         required: false
-        default: '50'
+        default: '30'
         type: string
       period:
         description: 'period seconds: 10 or 60 (default 10)'
@@ -53,7 +54,7 @@ jobs:
 
           token = os.environ["CF_TOKEN"]
           mode = (os.environ.get("MODE") or "probe").strip()
-          threshold = int(os.environ.get("THRESHOLD") or "50")
+          threshold = int(os.environ.get("THRESHOLD") or "30")
           period = int(os.environ.get("PERIOD") or "10")
           if period not in (10, 60):
               period = 10
@@ -87,13 +88,16 @@ jobs:
               print("\nmode=probe; no changes.")
               raise SystemExit(0)
 
-          desc = "Per-IP flood protection (pages/assets)"
+          desc = "Per-IP flood/brute-force protection on /mcp"
           rule = {
               "description": desc,
               "action": "block",
-              # Count only page/asset traffic from the same IP; exclude our
-              # programmatic endpoints so MCP/API callers are never limited.
-              "expression": 'not (starts_with(http.request.uri.path, "/api/") or starts_with(http.request.uri.path, "/mcp"))',
+              # Protect the authenticated/public MCP endpoint from token
+              # brute-force and flooding. Only /mcp requests are counted, so
+              # page/asset traffic is unaffected. Our own MCP callers
+              # (cloudpick-docs eval ~9 reqs biweekly; multi-agent intermittent)
+              # are far below 30 req / 10s per IP, so they are never limited.
+              "expression": 'starts_with(http.request.uri.path, "/mcp")',
               "ratelimit": {
                   "characteristics": ["ip.src", "cf.colo.id"],
                   "period": period,
@@ -102,14 +106,10 @@ jobs:
               },
               "enabled": True,
           }
-          clean = []
-          for r in existing:
-              if r.get("description") == desc:
-                  continue
-              rl = {k: r[k] for k in ("description","action","expression","enabled") if k in r}
-              if "ratelimit" in r: rl["ratelimit"] = r["ratelimit"]
-              clean.append(rl)
-          clean.append(rule)
+          # Free tier allows a single rate-limit rule. Replace any existing rules
+          # (incl. the default "Leaked credential check", which only applies to
+          # password login forms we don't have) with this /mcp protection.
+          clean = [rule]
           c, d = call("PUT", f"/zones/{zid}/rulesets/phases/http_ratelimit/entrypoint",
                       {"rules": clean})
           ok = c == 200 and d.get("success")
